@@ -38,18 +38,13 @@ mod sidecar_encoder {
     use std::process::{Child, ChildStdin, Stdio};
 
     /// Video codec to use for encoding
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Default)]
     pub enum VideoCodec {
         /// H.264/AVC - widely compatible
+        #[default]
         H264,
         /// H.265/HEVC - better compression, newer
         H265,
-    }
-
-    impl Default for VideoCodec {
-        fn default() -> Self {
-            Self::H264
-        }
     }
 
     impl VideoCodec {
@@ -66,18 +61,13 @@ mod sidecar_encoder {
     }
 
     /// Audio codec to use for encoding
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Default)]
     pub enum AudioCodec {
         /// AAC - widely compatible
+        #[default]
         Aac,
         /// Opus - better quality at low bitrates
         Opus,
-    }
-
-    impl Default for AudioCodec {
-        fn default() -> Self {
-            Self::Aac
-        }
     }
 
     impl AudioCodec {

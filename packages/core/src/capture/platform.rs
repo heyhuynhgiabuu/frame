@@ -64,8 +64,8 @@ pub mod macos {
                 .iter()
                 .map(|d| DisplayInfo {
                     id: d.display_id() as u64,
-                    width: d.width() as u32,
-                    height: d.height() as u32,
+                    width: d.width(),
+                    height: d.height(),
                     frame_rate: 60,
                 })
                 .collect();
@@ -151,7 +151,7 @@ pub mod macos {
                         .with_display(display)
                         .with_excluding_windows(&[])
                         .build();
-                    (filter, display.width() as u32, display.height() as u32)
+                    (filter, display.width(), display.height())
                 }
                 CaptureArea::Window { window_id } => {
                     let windows = content.windows();

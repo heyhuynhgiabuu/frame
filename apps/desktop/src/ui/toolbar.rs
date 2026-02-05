@@ -4,6 +4,7 @@ use iced::{
     Alignment, Element, Length,
 };
 
+#[allow(dead_code)] // Reserved for future use
 pub fn toolbar_view() -> Element<'static, Message> {
     row![
         button(text("Settings").size(12))

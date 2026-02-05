@@ -74,6 +74,7 @@ impl ErrorDialog {
     }
 
     /// Get the icon/color based on severity
+    #[allow(dead_code)] // Reserved for future use
     fn severity_color(&self) -> iced::Color {
         if let Some(ctx) = &self.context {
             match ctx.severity {
@@ -114,7 +115,7 @@ impl ErrorDialog {
     }
 
     /// Render the error dialog
-    pub fn view(&self) -> Element<ErrorDialogMessage> {
+    pub fn view(&self) -> Element<'_, ErrorDialogMessage> {
         if !self.is_open {
             return Space::new(Length::Shrink, Length::Shrink).into();
         }
@@ -125,7 +126,7 @@ impl ErrorDialog {
         };
 
         // Error message
-        let error_message = text(&format!("{}", ctx.error)).size(16);
+        let error_message = text(format!("{}", ctx.error)).size(16);
 
         // Severity indicator - simple colored bar
         let severity_indicator = container(Space::new(Length::Fixed(4.0), Length::Fill));

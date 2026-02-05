@@ -3,14 +3,13 @@
 use crate::recording::{RecordingConfig, RecordingService};
 use crate::ui::main_view;
 use frame_core::capture::CaptureArea;
-use frame_core::{FrameError, RecoveryAction};
 use frame_ui::error_dialog::{ErrorDialog, ErrorDialogMessage};
 use frame_ui::export_dialog::{ExportDialog, ExportDialogMessage};
 use frame_ui::timeline::Timeline;
 use iced::{executor, time, Application, Command, Element, Subscription, Theme};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use tracing::{debug, error, info};
+use tracing::info;
 
 const AUTO_SAVE_INTERVAL_SECS: u64 = 10;
 
@@ -45,6 +44,7 @@ pub struct Permissions {
     pub checking: bool,
 }
 
+#[allow(dead_code)] // State variants reserved for full app lifecycle
 #[derive(Debug, Clone)]
 pub enum AppState {
     /// Initial permission check
@@ -65,6 +65,7 @@ pub enum AppState {
     Error(String),
 }
 
+#[allow(dead_code)] // Message variants reserved for full app lifecycle
 #[derive(Debug, Clone)]
 pub enum Message {
     // Permission handling
@@ -192,8 +193,6 @@ impl Application for FrameApp {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        debug!("Handling message: {:?}", message);
-
         match message {
             // Permission handling
             Message::CheckPermissions => {
@@ -276,7 +275,7 @@ impl Application for FrameApp {
                 )
             }
             Message::RecordingStarted { project_id } => {
-                debug!(
+                info!(
                     "Recording started with auto-save: project_id={}",
                     project_id
                 );
@@ -316,7 +315,7 @@ impl Application for FrameApp {
                 self.auto_save_status.is_saving = false;
                 self.auto_save_status.last_save = Some(Instant::now());
                 self.auto_save_status.save_count += 1;
-                debug!(
+                info!(
                     "Auto-save completed, count: {}",
                     self.auto_save_status.save_count
                 );
@@ -355,7 +354,7 @@ impl Application for FrameApp {
             ),
             Message::DeleteIncompleteRecording(path) => {
                 if let Err(e) = RecordingService::delete_incomplete_recording(&path) {
-                    error!("Failed to delete incomplete recording: {}", e);
+                    tracing::error!("Failed to delete incomplete recording: {}", e);
                 }
                 self.incomplete_recordings.retain(|p| p != &path);
                 Command::none()
@@ -369,11 +368,11 @@ impl Application for FrameApp {
                 self.state = AppState::Previewing { project_id, path };
                 Command::none()
             }
-            Message::RecordingError(error) => {
-                error!("Recording error: {}", error);
+            Message::RecordingError(ref error_msg) => {
+                tracing::error!("Recording error: {}", error_msg);
                 // Open error dialog instead of just setting error state
                 self.error_dialog
-                    .open(frame_core::FrameError::Unknown(error));
+                    .open(frame_core::FrameError::Unknown(error_msg.clone()));
                 self.state = AppState::Idle;
                 self.start_time = None;
                 Command::none()
@@ -406,9 +405,9 @@ impl Application for FrameApp {
                 }
                 Command::none()
             }
-            Message::ShowError(error_msg) => {
+            Message::ShowError(ref error_msg) => {
                 self.error_dialog
-                    .open(frame_core::FrameError::Unknown(error_msg));
+                    .open(frame_core::FrameError::Unknown(error_msg.clone()));
                 Command::none()
             }
             Message::UpdateRecordingStats => {
@@ -419,7 +418,7 @@ impl Application for FrameApp {
             }
 
             // Export
-            Message::ExportProject(project_id) => {
+            Message::ExportProject(_project_id) => {
                 // Open export dialog instead of starting export directly
                 if let AppState::Previewing { project_id, path } = &self.state {
                     self.export_dialog.open();
@@ -507,7 +506,7 @@ impl Application for FrameApp {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         main_view(self)
     }
 

@@ -405,8 +405,9 @@ pub mod resampler {
             let mut interleaved = Vec::with_capacity(output_frames * self.channels as usize);
 
             for frame in 0..output_frames {
-                for ch in 0..self.channels as usize {
-                    interleaved.push(output[ch][frame] as f32);
+                for (_ch, channel_output) in output.iter().enumerate().take(self.channels as usize)
+                {
+                    interleaved.push(channel_output[frame] as f32);
                 }
             }
 

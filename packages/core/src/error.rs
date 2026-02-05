@@ -183,7 +183,7 @@ pub struct ErrorContext {
 }
 
 /// Possible recovery actions
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecoveryAction {
     /// Retry the operation
     Retry,
@@ -202,15 +202,15 @@ pub enum RecoveryAction {
 impl FrameError {
     /// Check if the error is recoverable (can retry)
     pub fn is_recoverable(&self) -> bool {
-        match self {
-            FrameError::CaptureError(_) => true,
-            FrameError::Network(_) => true,
-            FrameError::ResourceExhausted(_) => true,
-            FrameError::Timeout(_) => true,
-            FrameError::Cancelled => true,
-            FrameError::ExternalTool(_, _) => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            FrameError::CaptureError(_)
+                | FrameError::Network(_)
+                | FrameError::ResourceExhausted(_)
+                | FrameError::Timeout(_)
+                | FrameError::Cancelled
+                | FrameError::ExternalTool(_, _)
+        )
     }
 
     /// Get the severity level for this error

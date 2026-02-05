@@ -7,7 +7,7 @@ use iced::{
     Alignment, Element, Length,
 };
 
-pub fn main_view(app: &FrameApp) -> Element<Message> {
+pub fn main_view(app: &FrameApp) -> Element<'_, Message> {
     let content: Element<Message> = match &app.state {
         AppState::CheckingPermissions => checking_permissions_view(),
         AppState::PermissionRequired { screen, microphone } => {
@@ -19,15 +19,15 @@ pub fn main_view(app: &FrameApp) -> Element<Message> {
             let frame_count = app.frame_count;
             recording_view(elapsed, frame_count)
         }
-        AppState::Previewing { project_id, .. } => preview_view(&project_id, app.timeline.as_ref()),
+        AppState::Previewing { project_id, .. } => preview_view(project_id, app.timeline.as_ref()),
         AppState::ExportConfiguring { project_id, path } => {
-            export_dialog_view(&project_id, path, &app.export_dialog)
+            export_dialog_view(project_id, path, &app.export_dialog)
         }
         AppState::Exporting {
             project_id,
             progress,
-        } => exporting_view(&project_id, *progress),
-        AppState::Error(msg) => error_view(&msg),
+        } => exporting_view(project_id, *progress),
+        AppState::Error(msg) => error_view(msg),
     };
 
     container(content)
@@ -140,7 +140,7 @@ fn recording_view(
     frame_count: u64,
 ) -> Element<'static, Message> {
     let duration = elapsed
-        .map(|e| format_duration(e))
+        .map(format_duration)
         .unwrap_or_else(|| "00:00:00".to_string());
 
     let recording_indicator = row![
@@ -232,25 +232,17 @@ fn preview_view<'a>(project_id: &'a str, timeline: Option<&'a Timeline>) -> Elem
 }
 
 fn export_dialog_view<'a>(
-    project_id: &'a str,
+    _project_id: &'a str,
     _path: &'a std::path::PathBuf,
     export_dialog: &'a frame_ui::export_dialog::ExportDialog,
 ) -> Element<'a, Message> {
-    export_dialog
-        .view(|msg| Message::ExportDialogMessage(msg))
-        .map(|msg| msg)
+    export_dialog.view(Message::ExportDialogMessage)
 }
 
-fn exporting_view(project_id: &str, progress: f32) -> Element<'static, Message> {
+fn exporting_view(_project_id: &str, progress: f32) -> Element<'static, Message> {
     let title = text("Exporting...")
         .size(32)
         .style(iced::theme::Text::Color(iced::Color::WHITE));
-
-    let info = text(format!("Project: {}", project_id))
-        .size(14)
-        .style(iced::theme::Text::Color(iced::Color::from_rgb(
-            0.6, 0.6, 0.6,
-        )));
 
     let progress_bar_widget = progress_bar(0.0..=1.0, progress)
         .width(Length::Fixed(300.0))
@@ -265,7 +257,6 @@ fn exporting_view(project_id: &str, progress: f32) -> Element<'static, Message> 
 
     column![
         title,
-        info,
         Space::with_height(30),
         progress_bar_widget,
         percentage,

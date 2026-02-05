@@ -7,9 +7,10 @@ use iced::{
 use std::path::PathBuf;
 
 /// Export format options
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ExportFormat {
     /// MP4 with H.264
+    #[default]
     Mp4,
     /// GIF animation
     Gif,
@@ -27,20 +28,15 @@ impl std::fmt::Display for ExportFormat {
     }
 }
 
-impl Default for ExportFormat {
-    fn default() -> Self {
-        Self::Mp4
-    }
-}
-
 /// Quality preset for export
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum QualityPreset {
     /// Low quality, small file
     Low,
     /// Medium quality
     Medium,
     /// High quality
+    #[default]
     High,
     /// Maximum quality, large file
     Maximum,
@@ -54,12 +50,6 @@ impl std::fmt::Display for QualityPreset {
             QualityPreset::High => write!(f, "High"),
             QualityPreset::Maximum => write!(f, "Maximum (larger file)"),
         }
-    }
-}
-
-impl Default for QualityPreset {
-    fn default() -> Self {
-        Self::High
     }
 }
 
@@ -86,9 +76,10 @@ impl QualityPreset {
 }
 
 /// Resolution options
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ExportResolution {
     /// Original resolution
+    #[default]
     Original,
     /// 1080p
     P1080,
@@ -106,12 +97,6 @@ impl std::fmt::Display for ExportResolution {
             ExportResolution::P720 => write!(f, "720p"),
             ExportResolution::P480 => write!(f, "480p"),
         }
-    }
-}
-
-impl Default for ExportResolution {
-    fn default() -> Self {
-        Self::Original
     }
 }
 

@@ -16,6 +16,7 @@ pub struct Timeline {
     /// List of clips/segments in the timeline
     clips: Vec<Clip>,
     /// Whether the user is currently dragging the playhead
+    #[allow(dead_code)] // Reserved for drag implementation
     dragging: bool,
     /// Timeline width in pixels (set during layout)
     width: f32,
@@ -96,6 +97,7 @@ impl Timeline {
     }
 
     /// Convert x position to time
+    #[allow(dead_code)] // Reserved for drag-to-seek implementation
     fn x_to_time(&self, x: f32) -> Duration {
         let relative_x = (x - 20.0).max(0.0);
         let seconds = relative_x / self.pixels_per_second;
@@ -103,7 +105,7 @@ impl Timeline {
     }
 
     /// Build the timeline view
-    pub fn view(&self) -> Element<TimelineMessage> {
+    pub fn view(&self) -> Element<'_, TimelineMessage> {
         Canvas::new(TimelineProgram { timeline: self })
             .width(Length::Fill)
             .height(Length::Fixed(120.0))

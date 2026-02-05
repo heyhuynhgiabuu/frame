@@ -1,6 +1,6 @@
 //! Recording service that manages capture lifecycle with auto-save support
 
-use frame_core::auto_save::{AutoSaveConfig, AutoSaveService};
+use frame_core::auto_save::AutoSaveService;
 use frame_core::capture::{create_capture, CaptureArea, CaptureConfig, ScreenCapture};
 use frame_core::encoder::{Encoder, EncoderConfig, VideoCodec};
 use frame_core::project::{Recording, RecordingState};
@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
-use tracing::{debug, error, info};
+use tracing::info;
 
 /// Recording configuration
 #[derive(Debug, Clone)]
@@ -36,6 +36,7 @@ impl Default for RecordingConfig {
 }
 
 /// Recording session state
+#[allow(dead_code)] // Enum variants for state machine completeness
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RecordingSessionState {
     Idle,
@@ -120,6 +121,7 @@ impl RecordingService {
     }
 
     /// Get current recording state
+    #[allow(dead_code)] // Reserved for future use
     pub fn state(&self) -> RecordingSessionState {
         self.state
     }
@@ -130,16 +132,19 @@ impl RecordingService {
     }
 
     /// Get recording duration
+    #[allow(dead_code)] // Reserved for future use
     pub fn duration(&self) -> Option<Duration> {
         self.start_time.map(|t| t.elapsed())
     }
 
     /// Get the current project ID if recording
+    #[allow(dead_code)] // Reserved for future use
     pub fn current_project_id(&self) -> Option<&str> {
         self.auto_save.current_project().map(|p| p.id.as_str())
     }
 
     /// Check if auto-save is enabled
+    #[allow(dead_code)] // Reserved for future use
     pub fn auto_save_enabled(&self) -> bool {
         self.auto_save.is_enabled()
     }
@@ -246,9 +251,9 @@ impl RecordingService {
                 .start_time
                 .map(|t| {
                     chrono::DateTime::from_timestamp(t.elapsed().as_secs() as i64, 0)
-                        .unwrap_or_else(|| chrono::Utc::now())
+                        .unwrap_or_else(chrono::Utc::now)
                 })
-                .unwrap_or_else(|| chrono::Utc::now()),
+                .unwrap_or_else(chrono::Utc::now),
             duration_ms: self
                 .start_time
                 .map(|t| t.elapsed().as_millis() as u64)
@@ -284,6 +289,7 @@ impl RecordingService {
     }
 
     /// Capture a single frame (for preview)
+    #[allow(dead_code)] // Reserved for preview implementation
     pub async fn capture_preview_frame(
         &mut self,
     ) -> FrameResult<Option<frame_core::capture::Frame>> {

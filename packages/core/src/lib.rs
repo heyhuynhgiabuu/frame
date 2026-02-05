@@ -1,5 +1,6 @@
 pub mod auto_save;
 pub mod capture;
+pub mod effects;
 pub mod encoder;
 pub mod error;
 pub mod project;

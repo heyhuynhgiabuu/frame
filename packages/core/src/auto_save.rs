@@ -124,9 +124,9 @@ impl AutoSaveService {
         };
 
         // Then save separately to avoid borrow conflict
-        if project_id.is_some() {
+        if let Some(pid) = project_id {
             self.save_now().await?;
-            info!("Recording added to project {}", project_id.unwrap());
+            info!("Recording added to project {}", pid);
         }
         Ok(())
     }
@@ -236,7 +236,7 @@ impl RecoveryService {
     }
 
     /// Load an incomplete project for recovery
-    pub fn load_incomplete_project(project_dir: &PathBuf) -> FrameResult<Option<Project>> {
+    pub fn load_incomplete_project(project_dir: &std::path::Path) -> FrameResult<Option<Project>> {
         let project_file = project_dir.join("project.json");
 
         if !project_file.exists() {
