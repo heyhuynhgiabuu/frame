@@ -1,0 +1,24 @@
+# Progress Log
+
+Bead: bd-2g1
+Started: 2026-02-05
+
+## Codebase Patterns
+
+- Webcam: Use `nokhwa` crate with `avfoundation` feature for macOS
+- Capture: Follow existing pattern in `packages/core/src/capture/`
+- Effects: Add to pipeline in `packages/core/src/effects/pipeline.rs`
+- UI Components: Follow existing iced.rs patterns in `packages/ui-components/`
+- GIF: Use `gifski` crate for high-quality palette optimization
+- Clipboard: Use `arboard` crate for cross-platform clipboard
+
+## Architecture Notes
+
+- Webcam runs as separate capture stream, composited in pipeline
+- Aspect ratio applied at export time, not during capture
+- Region stored in project, applied to ScreenCaptureKit filter
+- Export presets are serializable structs saved to user config
+
+---
+
+<!-- Task logs below - APPEND ONLY -->

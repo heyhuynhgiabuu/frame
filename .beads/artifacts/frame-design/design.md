@@ -221,7 +221,18 @@ frame/
 
 **Bead:** bd-cdx | **PRD:** `.beads/artifacts/bd-cdx/prd.md`
 
-### Phase 5: Pro Features (Weeks 18+)
+### Phase 5: MVP Polish (Weeks 18-22)
+
+- [ ] Webcam overlay (capture, positioning, shapes)
+- [ ] Aspect ratio switching (16:9, 9:16, 1:1, 4:3)
+- [ ] Region recording (area selection)
+- [ ] Export presets (Web, YouTube, Twitter, Instagram, GIF)
+- [ ] Visual effects (shadow, inset)
+- [ ] Copy to clipboard
+
+**Bead:** bd-2g1 | **PRD:** `.beads/artifacts/bd-2g1/prd.md`
+
+### Phase 6: Pro Features (Weeks 23+) - DEFERRED
 
 - [ ] Cloud sync infrastructure (Supabase + Cloudflare)
 - [ ] Shareable links
