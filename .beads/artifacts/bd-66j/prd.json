@@ -1,0 +1,326 @@
+{
+  "beadId": "bd-66j",
+  "prdName": "phase-5-pro-features",
+  "tasks": [
+    {
+      "id": "infra-1",
+      "category": "infra",
+      "description": "Set up Supabase project and Cloudflare resources",
+      "steps": [
+        "Supabase project accessible with API keys",
+        "R2 bucket created with CORS configured",
+        "Worker deployed for presigned URL generation",
+        "Database migrations applied successfully"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["infra/", "supabase/migrations/"]
+      }
+    },
+    {
+      "id": "db-1",
+      "category": "db",
+      "description": "Create database tables with Row Level Security policies",
+      "steps": [
+        "All tables created (profiles, teams, team_members, recordings)",
+        "RLS policies enforce ownership/team access",
+        "Indexes on frequently queried columns",
+        "Test queries return expected results"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["infra-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["supabase/migrations/"]
+      }
+    },
+    {
+      "id": "core-1",
+      "category": "core",
+      "description": "Create packages/cloud/ Rust crate for API interactions",
+      "steps": [
+        "cargo build -p frame-cloud succeeds",
+        "Client can authenticate with Supabase",
+        "Client can upload file to R2 via presigned URL",
+        "Client can fetch recording metadata"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["db-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/cloud/"]
+      }
+    },
+    {
+      "id": "core-2",
+      "category": "core",
+      "description": "Store auth tokens securely using macOS Keychain",
+      "steps": [
+        "Tokens saved to Keychain on login",
+        "Tokens retrieved on app launch",
+        "Tokens cleared on logout",
+        "No tokens in plaintext config files"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/cloud/src/keychain.rs"]
+      }
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Login/signup UI components in the desktop app",
+      "steps": [
+        "Login form with email/password fields",
+        "Signup form with validation",
+        "Forgot password flow triggers email",
+        "User avatar/name shown when logged in",
+        "Logout button clears session"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1", "core-2"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/ui/auth.rs", "packages/ui-components/src/components/auth.rs"]
+      }
+    },
+    {
+      "id": "core-3",
+      "category": "core",
+      "description": "Background upload queue with progress and retry",
+      "steps": [
+        "Upload starts when user clicks Upload to Cloud",
+        "Progress percentage updates in UI",
+        "Failed uploads retry automatically (3 attempts)",
+        "Upload resumes after app restart",
+        "Large files (>1GB) upload successfully"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/cloud/src/upload.rs"]
+      }
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Upload progress and status in the desktop app",
+      "steps": [
+        "Progress bar shows upload percentage",
+        "Uploading status visible in project list",
+        "Cancel button stops upload",
+        "Error state shown with retry option",
+        "Success state shows View online link"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-3", "ui-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/ui/cloud.rs", "packages/ui-components/src/components/upload.rs"]
+      }
+    },
+    {
+      "id": "infra-2",
+      "category": "infra",
+      "description": "Cloudflare Worker for generating and resolving share links",
+      "steps": [
+        "POST /share creates new share token",
+        "GET /s/{token} returns recording metadata",
+        "GET /s/{token}/video streams video file",
+        "Private links require auth header",
+        "Expired tokens return 404"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["infra-1", "db-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["workers/share/"]
+      }
+    },
+    {
+      "id": "ui-3",
+      "category": "ui",
+      "description": "Share dialog in desktop app with copy-to-clipboard",
+      "steps": [
+        "Share button opens dialog",
+        "Toggle for public/private link",
+        "Copy button copies link to clipboard",
+        "Link preview shows shortened URL",
+        "Revoke button invalidates link"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["infra-2", "core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/ui/share.rs", "packages/ui-components/src/components/share.rs"]
+      }
+    },
+    {
+      "id": "core-4",
+      "category": "core",
+      "description": "CRUD operations for teams and memberships",
+      "steps": [
+        "Create team with name",
+        "Invite user by email",
+        "Accept/decline invitation",
+        "Remove member from team",
+        "Transfer ownership",
+        "Delete team (owner only)"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["db-1", "core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/cloud/src/teams.rs"]
+      }
+    },
+    {
+      "id": "ui-4",
+      "category": "ui",
+      "description": "Team management interface in settings",
+      "steps": [
+        "Team list in settings sidebar",
+        "Create team form",
+        "Member list with roles",
+        "Invite member dialog",
+        "Role change dropdown (admin only)",
+        "Leave team button"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-4", "ui-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/ui/teams.rs", "packages/ui-components/src/components/teams.rs"]
+      }
+    },
+    {
+      "id": "core-5",
+      "category": "core",
+      "description": "Check user tier and enable/disable Pro features",
+      "steps": [
+        "Free users see Upgrade to Pro prompts",
+        "Pro features gated behind tier check",
+        "License refreshes on app launch",
+        "Offline grace period (7 days)",
+        "Expired Pro reverts to Free features"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/cloud/src/license.rs"]
+      }
+    },
+    {
+      "id": "desktop-1",
+      "category": "desktop",
+      "description": "Integrate license checks into desktop app",
+      "steps": [
+        "Cloud sync disabled for Free tier",
+        "Share links limited to public for Free",
+        "Team features disabled for Free",
+        "Upgrade prompts show in appropriate places",
+        "Pro badge shown in UI when active"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-5", "ui-2", "ui-3", "ui-4"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/app.rs", "apps/desktop/src/ui/"]
+      }
+    },
+    {
+      "id": "web-1",
+      "category": "web",
+      "description": "SolidJS app for viewing shared recordings",
+      "steps": [
+        "/s/{token} loads video player",
+        "Player shows title, duration",
+        "Video streams without download prompt",
+        "Mobile-responsive layout",
+        "404 page for invalid tokens"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["infra-2"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["apps/web/"]
+      }
+    },
+    {
+      "id": "docs-1",
+      "category": "docs",
+      "description": "Update AGENTS.md and user docs for Pro features",
+      "steps": [
+        "AGENTS.md updated for packages/cloud",
+        "User guide for cloud sync setup",
+        "API documentation for Workers",
+        "Team setup guide",
+        "Troubleshooting section"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [
+          "infra-1",
+          "infra-2",
+          "core-1",
+          "core-2",
+          "core-3",
+          "core-4",
+          "core-5",
+          "ui-1",
+          "ui-2",
+          "ui-3",
+          "ui-4",
+          "desktop-1",
+          "web-1"
+        ],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/cloud/AGENTS.md", "docs/"]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Cloud API: packages/cloud/src/",
+      "UI components: packages/ui-components/src/components/",
+      "Desktop UI: apps/desktop/src/ui/",
+      "Web app: apps/web/src/",
+      "Infrastructure: supabase/, workers/"
+    ],
+    "keyFiles": ["packages/cloud/Cargo.toml", "supabase/migrations/", "workers/share/src/index.ts"],
+    "nonGoals": [
+      "Payment/billing integration (Stripe)",
+      "AI features (auto-zoom, silence removal)",
+      "Comments and approval workflows",
+      "Analytics dashboard"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": ["bd-cdx"],
+    "parallel": false,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 80
+  }
+}

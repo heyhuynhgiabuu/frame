@@ -1,0 +1,22 @@
+# Progress Log
+
+Bead: bd-66j
+Started: 2026-02-05
+
+## Codebase Patterns
+
+- Cloud API client: `packages/cloud/src/`
+- Supabase integration: Uses `postgrest-rs` or `supabase-rs` for Rust
+- Keychain: `security-framework` crate for macOS Keychain
+- HTTP client: `reqwest` with async/await
+- UI components follow existing pattern in `packages/ui-components/`
+
+## Infrastructure Notes
+
+- Supabase project TBD
+- Cloudflare account TBD
+- R2 bucket naming: `frame-recordings-{env}`
+
+---
+
+<!-- Task logs below - APPEND ONLY -->

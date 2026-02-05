@@ -1,6 +1,6 @@
 # Frame - Design Document
 
-**Status**: Phase 2 Complete ✅ | **Last Updated**: 2026-02-05
+**Status**: Phase 4 Complete ✅ | **Last Updated**: 2026-02-05
 
 ---
 
@@ -210,14 +210,14 @@ frame/
 
 **Bead:** bd-2f8 | **PRD:** `.beads/artifacts/bd-2f8/prd.md`
 
-### Phase 4: Timeline Editing (Weeks 13-17)
+### Phase 4: Timeline Editing (Weeks 13-17) ✅ COMPLETE
 
-- [ ] Trim (in/out points)
-- [ ] Cut (remove middle sections)
-- [ ] Split (divide clips)
-- [ ] Undo/redo history
-- [ ] Non-destructive editing
-- [ ] Export with edits applied
+- [x] Trim (in/out points)
+- [x] Cut (remove middle sections)
+- [x] Split (divide clips)
+- [x] Undo/redo history
+- [x] Non-destructive editing
+- [x] Export with edits applied
 
 **Bead:** bd-cdx | **PRD:** `.beads/artifacts/bd-cdx/prd.md`
 
@@ -227,6 +227,8 @@ frame/
 - [ ] Shareable links
 - [ ] Team workspaces
 - [ ] Payment/licensing system
+
+**Bead:** bd-66j | **PRD:** `.beads/artifacts/bd-66j/prd.md`
 
 ---
 
