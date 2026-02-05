@@ -3,11 +3,25 @@ use serde::{Deserialize, Serialize};
 
 pub mod platform;
 
+#[cfg(feature = "stub-capture")]
+pub mod stub;
+
 #[cfg(feature = "capture")]
 pub mod audio;
 
 #[cfg(feature = "webcam")]
 pub mod webcam;
+
+// Re-export the appropriate capture implementation
+#[cfg(feature = "stub-capture")]
+pub use stub::{DisplayInfo, StubScreenCapture as PlatformCapture, WindowInfo};
+
+#[cfg(all(
+    target_os = "macos",
+    feature = "capture",
+    not(feature = "stub-capture")
+))]
+pub use platform::macos::{DisplayInfo, MacOSScreenCapture as PlatformCapture, WindowInfo};
 
 /// Represents a captured frame
 #[derive(Debug, Clone)]
@@ -133,8 +147,12 @@ pub trait ScreenCapture: Send + Sync {
 }
 
 // Re-export platform-specific implementations
-#[cfg(all(target_os = "macos", feature = "capture"))]
-pub use platform::macos::{DisplayInfo, MacOSScreenCapture, WindowInfo};
+#[cfg(all(
+    target_os = "macos",
+    feature = "capture",
+    not(feature = "stub-capture")
+))]
+pub use platform::macos::MacOSScreenCapture;
 
 // Re-export audio capture
 #[cfg(feature = "capture")]
@@ -148,11 +166,17 @@ pub use audio::resampler::SampleRateConverter;
 #[cfg(feature = "webcam")]
 pub use webcam::{WebcamCapture, WebcamConfig, WebcamDevice};
 
-#[cfg(feature = "capture")]
+// Stub capture for UI testing
+#[cfg(feature = "stub-capture")]
+pub fn create_capture() -> FrameResult<Box<dyn ScreenCapture>> {
+    Ok(Box::new(stub::StubScreenCapture::new()?))
+}
+
+#[cfg(all(feature = "capture", not(feature = "stub-capture")))]
 pub fn create_capture() -> FrameResult<Box<dyn ScreenCapture>> {
     #[cfg(target_os = "macos")]
     {
-        Ok(Box::new(MacOSScreenCapture::new()?))
+        Ok(Box::new(platform::macos::MacOSScreenCapture::new()?))
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -163,7 +187,7 @@ pub fn create_capture() -> FrameResult<Box<dyn ScreenCapture>> {
     }
 }
 
-#[cfg(not(feature = "capture"))]
+#[cfg(all(not(feature = "capture"), not(feature = "stub-capture")))]
 pub fn create_capture() -> FrameResult<Box<dyn ScreenCapture>> {
     Err(crate::FrameError::PlatformNotSupported(
         "capture feature not enabled".to_string(),

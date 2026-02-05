@@ -11,4 +11,4 @@ description = "Reusable UI components for Frame"
 [dependencies]
 iced = { workspace = true, features = ["canvas"] }
 iced_aw = { workspace = true }
-frame-core = { path = "../../packages/core" }
+frame-core = { path = "../../packages/core", default-features = false }

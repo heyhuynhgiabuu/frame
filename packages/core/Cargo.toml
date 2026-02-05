@@ -60,6 +60,7 @@ encoding = ["ffmpeg-sidecar", "hound"]
 encoding-libav = ["ffmpeg-next"]
 gif = ["gifski", "imgref", "rgb"]
 pro = []
+stub-capture = []  # UI testing without real screen capture
 
 [dev-dependencies]
 tracing-subscriber = "0.3"

@@ -25,7 +25,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 # Local dependencies
-frame-core = { path = "../../packages/core", features = ["capture", "encoding"] }
+frame-core = { path = "../../packages/core", default-features = false }
 frame-ui = { path = "../../packages/ui-components" }
 uuid = { workspace = true }
 chrono = { workspace = true }
@@ -43,5 +43,6 @@ tempfile = "3.10"
 
 [features]
 default = ["capture"]
-capture = ["screencapturekit", "core-graphics", "core-foundation", "frame-core/capture"]
+capture = ["screencapturekit", "core-graphics", "core-foundation", "frame-core/capture", "frame-core/encoding"]
+stub-capture = ["frame-core/stub-capture"]  # UI testing without real capture
 pro = ["frame-core/pro"]
