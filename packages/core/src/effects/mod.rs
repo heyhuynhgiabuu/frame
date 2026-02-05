@@ -16,7 +16,11 @@ use std::time::Duration;
 pub mod background; // Task: effects-4
 pub mod cursor; // Task: effects-1
 pub mod keyboard; // Task: effects-3
+pub mod pipeline; // Task: integration-1
 pub mod zoom; // Task: effects-2
+
+// Re-export the integrated pipeline
+pub use pipeline::IntegratedPipeline;
 
 /// Cursor position with timestamp for tracking
 #[derive(Debug, Clone, Copy, Default)]
