@@ -17,14 +17,25 @@ pub struct Timeline {
     /// List of clips/segments in the timeline
     clips: Vec<Clip>,
     /// Whether the user is currently dragging the playhead
-    #[allow(dead_code)] // Reserved for drag implementation
-    dragging: bool,
+    #[allow(dead_code)] // Reserved for playhead drag implementation
+    dragging_playhead: bool,
+    /// Which trim handle is being dragged (if any)
+    dragging_trim: Option<TrimHandleDrag>,
     /// Timeline width in pixels (set during layout)
     width: f32,
     /// Pixels per second scale
     pixels_per_second: f32,
     /// Selection state for edit operations
     selection: SelectionState,
+}
+
+/// Which trim handle is being dragged
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TrimHandleDrag {
+    /// Dragging the start (left) trim handle
+    Start,
+    /// Dragging the end (right) trim handle
+    End,
 }
 
 /// A clip/segment in the timeline
@@ -165,6 +176,12 @@ pub enum TimelineMessage {
     CutPerformed(Duration, Duration),
     /// Trim was applied
     TrimApplied(Duration, Duration),
+    /// Trim handle drag started
+    TrimDragStarted(TrimHandleDrag),
+    /// Trim handle was dragged to a new position
+    TrimDragged(TrimHandleDrag, Duration),
+    /// Trim handle drag ended
+    TrimDragEnded,
 }
 
 impl Timeline {
@@ -174,7 +191,8 @@ impl Timeline {
             total_duration,
             current_position: Duration::ZERO,
             clips: Vec::new(),
-            dragging: false,
+            dragging_playhead: false,
+            dragging_trim: None,
             width: 800.0,            // Default width
             pixels_per_second: 10.0, // Default scale
             selection: SelectionState::default(),
@@ -272,13 +290,99 @@ impl Timeline {
         self.selection.clear_all();
     }
 
+    /// Start dragging a trim handle
+    #[allow(dead_code)] // Public API for external integration
+    pub fn start_trim_drag(&mut self, handle: TrimHandleDrag) {
+        self.dragging_trim = Some(handle);
+        // Ensure trim bounds exist - if not, create default (full duration)
+        if self.selection.trim.is_none() {
+            self.selection.trim = Some(TrimBounds {
+                start: Duration::ZERO,
+                end: self.total_duration,
+            });
+        }
+    }
+
+    /// Update trim position while dragging
+    #[allow(dead_code)] // Public API for external integration
+    pub fn update_trim_drag(&mut self, time: Duration) {
+        if let Some(handle) = self.dragging_trim {
+            if let Some(ref mut trim) = self.selection.trim {
+                // Enforce minimum trim duration of 500ms
+                const MIN_TRIM_DURATION: Duration = Duration::from_millis(500);
+
+                match handle {
+                    TrimHandleDrag::Start => {
+                        // Don't let start go past end - MIN_TRIM_DURATION
+                        let max_start = trim.end.saturating_sub(MIN_TRIM_DURATION);
+                        trim.start = time.min(max_start).min(self.total_duration);
+                    }
+                    TrimHandleDrag::End => {
+                        // Don't let end go before start + MIN_TRIM_DURATION
+                        let min_end = trim.start + MIN_TRIM_DURATION;
+                        trim.end = time.max(min_end).min(self.total_duration);
+                    }
+                }
+            }
+        }
+    }
+
+    /// End trim handle drag
+    #[allow(dead_code)] // Public API for external integration
+    pub fn end_trim_drag(&mut self) {
+        self.dragging_trim = None;
+    }
+
+    /// Check if currently dragging a trim handle
+    #[allow(dead_code)] // Public API for external integration
+    pub fn is_dragging_trim(&self) -> bool {
+        self.dragging_trim.is_some()
+    }
+
+    /// Get which trim handle is being dragged
+    #[allow(dead_code)] // Public API for external integration
+    pub fn dragging_trim_handle(&self) -> Option<TrimHandleDrag> {
+        self.dragging_trim
+    }
+
+    /// Check if a point is near a trim handle (for hit testing)
+    #[allow(dead_code)] // Used by canvas interaction (to be fully wired)
+    fn is_near_trim_handle(
+        &self,
+        x: f32,
+        track_y: f32,
+        track_height: f32,
+    ) -> Option<TrimHandleDrag> {
+        if let Some(trim) = &self.selection.trim {
+            let handle_hit_width = 12.0;
+
+            let start_x = self.time_to_x(trim.start);
+            let end_x = self.time_to_x(trim.end);
+
+            // Check start handle
+            if (x - start_x).abs() < handle_hit_width {
+                return Some(TrimHandleDrag::Start);
+            }
+
+            // Check end handle
+            if (x - end_x).abs() < handle_hit_width {
+                return Some(TrimHandleDrag::End);
+            }
+        }
+
+        // Suppress unused variable warning
+        let _ = (track_y, track_height);
+
+        None
+    }
+
     /// Convert time to x position
     fn time_to_x(&self, time: Duration) -> f32 {
         20.0 + time.as_secs_f32() * self.pixels_per_second
     }
 
     /// Convert x position to time
-    #[allow(dead_code)] // Reserved for drag-to-seek implementation
+    #[allow(dead_code)] // Used by canvas interaction (to be fully wired)
     fn x_to_time(&self, x: f32) -> Duration {
         let relative_x = (x - 20.0).max(0.0);
         let seconds = relative_x / self.pixels_per_second;

@@ -12,5 +12,5 @@ pub use error::{
 };
 pub use project::{
     EditHistory, EditOperation, Export, ExportFormat, Project, ProjectSettings, Recording,
-    RecordingState, Resolution, MAX_UNDO_HISTORY,
+    RecordingState, Resolution, DEFAULT_FRAME_RATE, MAX_UNDO_HISTORY, snap_to_frame,
 };

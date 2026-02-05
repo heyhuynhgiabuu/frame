@@ -105,6 +105,21 @@ mod duration_millis {
 /// Maximum number of operations in undo history to prevent unbounded memory growth
 pub const MAX_UNDO_HISTORY: usize = 50;
 
+/// Default frame rate for frame-accurate editing (can be overridden per project)
+pub const DEFAULT_FRAME_RATE: f64 = 30.0;
+
+/// Round a duration to the nearest frame boundary at the given frame rate
+pub fn snap_to_frame(time: Duration, frame_rate: f64) -> Duration {
+    if frame_rate <= 0.0 {
+        return time;
+    }
+    let frame_duration_secs = 1.0 / frame_rate;
+    let time_secs = time.as_secs_f64();
+    let frame_number = (time_secs / frame_duration_secs).round();
+    let snapped_secs = frame_number * frame_duration_secs;
+    Duration::from_secs_f64(snapped_secs)
+}
+
 /// Edit history with undo/redo support
 ///
 /// Operations are stored in order of application. `current_index` points to
