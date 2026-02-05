@@ -3,6 +3,7 @@
 use crate::recording::{RecordingConfig, RecordingService};
 use crate::ui::main_view;
 use frame_core::capture::CaptureArea;
+use frame_ui::export_dialog::{ExportDialog, ExportDialogMessage};
 use frame_ui::timeline::Timeline;
 use iced::{executor, time, Application, Command, Element, Subscription, Theme};
 use std::path::PathBuf;
@@ -18,6 +19,7 @@ pub struct FrameApp {
     pub start_time: Option<Instant>,
     pub permissions: Permissions,
     pub timeline: Option<Timeline>,
+    pub export_dialog: ExportDialog,
 }
 
 /// Permission states
@@ -40,6 +42,8 @@ pub enum AppState {
     Recording,
     /// Previewing recorded video
     Previewing { project_id: String, path: PathBuf },
+    /// Configuring export settings
+    ExportConfiguring { project_id: String, path: PathBuf },
     /// Exporting video
     Exporting { project_id: String, progress: f32 },
     /// Error state
@@ -85,6 +89,9 @@ pub enum Message {
 
     // Timeline
     TimelinePositionChanged(Duration),
+
+    // Export Dialog
+    ExportDialogMessage(ExportDialogMessage),
 }
 
 impl Application for FrameApp {
@@ -260,10 +267,14 @@ impl Application for FrameApp {
 
             // Export
             Message::ExportProject(project_id) => {
-                self.state = AppState::Exporting {
-                    project_id,
-                    progress: 0.0,
-                };
+                // Open export dialog instead of starting export directly
+                if let AppState::Previewing { project_id, path } = &self.state {
+                    self.export_dialog.open();
+                    self.state = AppState::ExportConfiguring {
+                        project_id: project_id.clone(),
+                        path: path.clone(),
+                    };
+                }
                 Command::none()
             }
             Message::ExportProgress(progress) => {
@@ -302,6 +313,41 @@ impl Application for FrameApp {
             Message::TimelinePositionChanged(position) => {
                 if let Some(timeline) = &mut self.timeline {
                     timeline.set_position(position);
+                }
+                Command::none()
+            }
+
+            // Export Dialog
+            Message::ExportDialogMessage(dialog_msg) => {
+                match dialog_msg {
+                    ExportDialogMessage::StartExport => {
+                        self.export_dialog.close();
+                        // Transition to exporting state with the configured settings
+                        if let AppState::ExportConfiguring { project_id, .. } = &self.state {
+                            self.state = AppState::Exporting {
+                                project_id: project_id.clone(),
+                                progress: 0.0,
+                            };
+                            // Start the actual export process here with config
+                            info!(
+                                "Starting export with config: {:?}",
+                                self.export_dialog.config
+                            );
+                        }
+                    }
+                    ExportDialogMessage::CancelExport => {
+                        self.export_dialog.close();
+                        // Return to preview state
+                        if let AppState::ExportConfiguring { project_id, path } = &self.state {
+                            self.state = AppState::Previewing {
+                                project_id: project_id.clone(),
+                                path: path.clone(),
+                            };
+                        }
+                    }
+                    _ => {
+                        self.export_dialog.update(dialog_msg);
+                    }
                 }
                 Command::none()
             }

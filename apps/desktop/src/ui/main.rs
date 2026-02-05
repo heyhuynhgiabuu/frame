@@ -19,7 +19,12 @@ pub fn main_view(app: &FrameApp) -> Element<Message> {
             let frame_count = app.frame_count;
             recording_view(elapsed, frame_count)
         }
-        AppState::Previewing { project_id, .. } => preview_view(&project_id, app.timeline.as_ref()),
+        AppState::Previewing { project_id, path } => {
+            preview_view(&project_id, path, app.timeline.as_ref())
+        }
+        AppState::ExportConfiguring { project_id, path } => {
+            export_dialog_view(&project_id, path, &app.export_dialog)
+        }
         AppState::Exporting {
             project_id,
             progress,
@@ -226,6 +231,16 @@ fn preview_view<'a>(project_id: &'a str, timeline: Option<&'a Timeline>) -> Elem
     }
 
     content.into()
+}
+
+fn export_dialog_view<'a>(
+    project_id: &'a str,
+    _path: &'a std::path::PathBuf,
+    export_dialog: &'a frame_ui::export_dialog::ExportDialog,
+) -> Element<'a, Message> {
+    export_dialog
+        .view(|msg| Message::ExportDialogMessage(msg))
+        .map(|msg| msg)
 }
 
 fn exporting_view(project_id: &str, progress: f32) -> Element<'static, Message> {
