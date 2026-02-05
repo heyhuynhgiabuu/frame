@@ -3,6 +3,7 @@ pub mod capture;
 pub mod effects;
 pub mod encoder;
 pub mod error;
+pub mod export_preset;
 pub mod project;
 
 pub use auto_save::{AutoSaveConfig, AutoSaveService, RecoveryService};

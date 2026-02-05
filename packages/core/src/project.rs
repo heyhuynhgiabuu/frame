@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use uuid::Uuid;
 
+use crate::capture::CaptureRegion;
 use crate::effects::EffectsConfig;
 use crate::FrameResult;
 
@@ -37,6 +38,9 @@ pub struct Project {
     /// Edit history for non-destructive timeline editing
     #[serde(default)]
     pub edit_history: EditHistory,
+    /// Optional capture region for this project (None = full screen)
+    #[serde(default)]
+    pub capture_region: Option<CaptureRegion>,
 }
 
 fn default_version() -> u32 {
@@ -340,6 +344,7 @@ impl Project {
             exports: Vec::new(),
             recording_state: RecordingState::Idle,
             edit_history: EditHistory::default(),
+            capture_region: None,
         }
     }
 
@@ -457,6 +462,22 @@ impl Project {
     /// Check if project has unsaved changes (simple flag-based tracking)
     pub fn mark_modified(&mut self) {
         self.updated_at = chrono::Utc::now();
+    }
+
+    /// Set the capture region for this project
+    pub fn set_capture_region(&mut self, region: Option<CaptureRegion>) {
+        self.capture_region = region;
+        self.mark_modified();
+    }
+
+    /// Get the capture region if one is set and valid
+    pub fn get_capture_region(&self) -> Option<&CaptureRegion> {
+        self.capture_region.as_ref().filter(|r| r.is_valid())
+    }
+
+    /// Check if this project has a valid capture region configured
+    pub fn has_capture_region(&self) -> bool {
+        self.get_capture_region().is_some()
     }
 }
 
@@ -889,5 +910,89 @@ mod tests {
             loaded.edit_history.applied_operations(),
             project.edit_history.applied_operations()
         );
+    }
+
+    // Capture Region Tests
+
+    #[test]
+    fn test_project_default_no_capture_region() {
+        let project = Project::new("No Region Test");
+        assert!(project.capture_region.is_none());
+        assert!(!project.has_capture_region());
+    }
+
+    #[test]
+    fn test_project_set_capture_region() {
+        let mut project = Project::new("Region Test");
+        let region = CaptureRegion::new(100, 200, 800, 600);
+
+        project.set_capture_region(Some(region));
+
+        assert!(project.has_capture_region());
+        assert_eq!(project.capture_region, Some(region));
+
+        let retrieved = project.get_capture_region().unwrap();
+        assert_eq!(retrieved.x, 100);
+        assert_eq!(retrieved.y, 200);
+        assert_eq!(retrieved.width, 800);
+        assert_eq!(retrieved.height, 600);
+    }
+
+    #[test]
+    fn test_project_capture_region_roundtrip() {
+        let file = NamedTempFile::new().unwrap();
+        let mut project = Project::new("Region Roundtrip Test");
+        let region = CaptureRegion::new(50, 100, 1920, 1080);
+
+        project.set_capture_region(Some(region));
+        project.save_to_file(file.path()).unwrap();
+
+        let loaded = Project::load_from_file(file.path()).unwrap();
+
+        assert!(loaded.has_capture_region());
+        let loaded_region = loaded.get_capture_region().unwrap();
+        assert_eq!(loaded_region.x, 50);
+        assert_eq!(loaded_region.y, 100);
+        assert_eq!(loaded_region.width, 1920);
+        assert_eq!(loaded_region.height, 1080);
+    }
+
+    #[test]
+    fn test_project_clear_capture_region() {
+        let mut project = Project::new("Clear Region Test");
+        let region = CaptureRegion::new(100, 100, 500, 500);
+
+        project.set_capture_region(Some(region));
+        assert!(project.has_capture_region());
+
+        project.set_capture_region(None);
+        assert!(!project.has_capture_region());
+        assert!(project.capture_region.is_none());
+    }
+
+    #[test]
+    fn test_capture_region_invalid_dimensions() {
+        // Region with zero width should be considered invalid
+        let invalid_region = CaptureRegion::new(0, 0, 0, 100);
+        assert!(!invalid_region.is_valid());
+
+        // Region with zero height should be considered invalid
+        let invalid_region = CaptureRegion::new(0, 0, 100, 0);
+        assert!(!invalid_region.is_valid());
+
+        // Valid region
+        let valid_region = CaptureRegion::new(0, 0, 100, 100);
+        assert!(valid_region.is_valid());
+    }
+
+    #[test]
+    fn test_project_get_capture_region_filters_invalid() {
+        let mut project = Project::new("Invalid Region Test");
+        // Manually set an invalid region (zero width)
+        project.capture_region = Some(CaptureRegion::new(0, 0, 0, 100));
+
+        // get_capture_region should filter out invalid regions
+        assert!(project.get_capture_region().is_none());
+        assert!(!project.has_capture_region());
     }
 }

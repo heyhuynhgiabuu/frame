@@ -2,11 +2,17 @@
 
 use crate::recording::{RecordingConfig, RecordingService};
 use crate::ui::main_view;
-use frame_core::capture::CaptureArea;
+use frame_core::capture::{CaptureArea, CaptureRegion};
+use frame_core::effects::aspect_ratio::AspectRatio;
+use frame_core::effects::WebcamOverlayConfig;
+use frame_core::export_preset::ExportPreset;
 use frame_core::{EditHistory, EditOperation};
 use frame_ui::error_dialog::{ErrorDialog, ErrorDialogMessage};
 use frame_ui::export_dialog::{ExportDialog, ExportDialogMessage};
+use frame_ui::region_selector::{RegionMessage, RegionSelector};
+use frame_ui::settings_panel::{SettingsMessage, SettingsPanel};
 use frame_ui::timeline::Timeline;
+use frame_ui::webcam_settings::{WebcamSettings, WebcamSettingsMessage};
 use iced::keyboard::{self, Key, Modifiers};
 use iced::{executor, time, Application, Command, Element, Event, Subscription, Theme};
 use std::path::PathBuf;
@@ -31,6 +37,18 @@ pub struct FrameApp {
     pub auto_save_status: AutoSaveStatus,
     /// Edit history for undo/redo (mirrors project state)
     pub edit_history: EditHistory,
+    // Phase 5: Webcam overlay configuration
+    pub webcam_config: WebcamOverlayConfig,
+    pub webcam_settings: WebcamSettings,
+    pub show_webcam_settings: bool,
+    // Phase 5: Effects configuration
+    pub settings_panel: SettingsPanel,
+    pub show_settings_panel: bool,
+    // Phase 5: Region selection
+    pub region_selector: RegionSelector,
+    pub show_region_selector: bool,
+    // Phase 5: Export completion
+    pub last_exported_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -65,6 +83,8 @@ pub enum AppState {
     ExportConfiguring { project_id: String, path: PathBuf },
     /// Exporting video
     Exporting { project_id: String, progress: f32 },
+    /// Selecting region for recording
+    RegionSelecting,
     /// Error state
     Error(String),
 }
@@ -146,6 +166,42 @@ pub enum Message {
     ErrorDialogMessage(ErrorDialogMessage),
     /// Show error dialog with error
     ShowError(String),
+
+    // Phase 5: Webcam overlay
+    /// Toggle webcam settings panel
+    ToggleWebcamSettings,
+    /// Webcam settings message wrapper
+    WebcamSettingsMessage(WebcamSettingsMessage),
+    /// Webcam configuration changed
+    WebcamSettingsChanged(WebcamOverlayConfig),
+
+    // Phase 5: Aspect ratio
+    /// Aspect ratio selection changed
+    AspectRatioChanged(AspectRatio),
+
+    // Phase 5: Region selection
+    /// Start region selection mode
+    StartRegionSelection,
+    /// Cancel region selection
+    CancelRegionSelection,
+    /// Region was selected (None if cancelled)
+    RegionSelected(Option<CaptureRegion>),
+    /// Region selector message wrapper
+    RegionSelector(RegionMessage),
+
+    // Phase 5: Export presets
+    /// Export preset was selected
+    ExportPresetSelected(ExportPreset),
+
+    // Phase 5: Effects settings
+    /// Toggle settings panel
+    ToggleSettingsPanel,
+    /// Settings panel message wrapper
+    SettingsMessage(SettingsMessage),
+
+    // Phase 5: Clipboard
+    /// Copy exported file to clipboard
+    CopyToClipboard(PathBuf),
 }
 
 impl Application for FrameApp {
@@ -156,6 +212,8 @@ impl Application for FrameApp {
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
         info!("Initializing Frame application");
+
+        let effects_config = frame_core::effects::EffectsConfig::default();
 
         (
             Self {
@@ -173,6 +231,18 @@ impl Application for FrameApp {
                 incomplete_recordings: Vec::new(),
                 auto_save_status: AutoSaveStatus::default(),
                 edit_history: EditHistory::new(),
+                // Phase 5: Webcam overlay
+                webcam_config: WebcamOverlayConfig::default(),
+                webcam_settings: WebcamSettings::new(),
+                show_webcam_settings: false,
+                // Phase 5: Effects settings
+                settings_panel: SettingsPanel::with_config(effects_config),
+                show_settings_panel: false,
+                // Phase 5: Region selection
+                region_selector: RegionSelector::new(),
+                show_region_selector: false,
+                // Phase 5: Export completion
+                last_exported_path: None,
             },
             Command::batch([
                 Command::perform(async {}, |_| Message::CheckPermissions),
@@ -209,6 +279,7 @@ impl Application for FrameApp {
                     progress * 100.0
                 )
             }
+            AppState::RegionSelecting => "Frame - Select Region".to_string(),
             AppState::Error(msg) => format!("Frame - Error: {}", msg),
         }
     }
@@ -585,6 +656,124 @@ impl Application for FrameApp {
                         self.export_dialog.update(dialog_msg);
                     }
                 }
+                Command::none()
+            }
+
+            // Phase 5: Webcam overlay
+            Message::ToggleWebcamSettings => {
+                self.show_webcam_settings = !self.show_webcam_settings;
+                Command::none()
+            }
+            Message::WebcamSettingsMessage(msg) => {
+                let confirmed = self.webcam_settings.update(msg);
+                if confirmed {
+                    // Apply the settings
+                    self.webcam_config = self.webcam_settings.get_config();
+                    self.show_webcam_settings = false;
+                    info!("Webcam settings applied: {:?}", self.webcam_config);
+                }
+                Command::none()
+            }
+            Message::WebcamSettingsChanged(config) => {
+                self.webcam_config = config;
+                self.webcam_settings.set_config(self.webcam_config.clone());
+                info!("Webcam configuration updated");
+                Command::none()
+            }
+
+            // Phase 5: Aspect ratio
+            Message::AspectRatioChanged(ratio) => {
+                self.export_dialog.config.aspect_ratio = ratio;
+                self.export_dialog.aspect_ratio_selector.update(
+                    frame_ui::export_dialog::AspectRatioMessage::PresetChanged(ratio.into()),
+                );
+                info!("Aspect ratio changed to: {:?}", ratio);
+                Command::none()
+            }
+
+            // Phase 5: Region selection
+            Message::StartRegionSelection => {
+                self.show_region_selector = true;
+                self.state = AppState::RegionSelecting;
+                info!("Starting region selection mode");
+                Command::none()
+            }
+            Message::CancelRegionSelection => {
+                self.show_region_selector = false;
+                self.state = AppState::Idle;
+                Command::none()
+            }
+            Message::RegionSelected(region) => {
+                self.show_region_selector = false;
+                if let Some(region) = region {
+                    info!(
+                        "Region selected: x={}, y={}, w={}, h={}",
+                        region.x, region.y, region.width, region.height
+                    );
+                    // Apply region to recording config
+                    self.recording_config.capture_area = CaptureArea::Region {
+                        x: region.x as i32,
+                        y: region.y as i32,
+                        width: region.width,
+                        height: region.height,
+                    };
+                }
+                // Return to previous state
+                self.state = AppState::Idle;
+                Command::none()
+            }
+            Message::RegionSelector(msg) => {
+                if let Some(result) = self.region_selector.update(msg) {
+                    match result {
+                        RegionMessage::Confirmed(selection) => {
+                            let region = CaptureRegion::new(
+                                selection.x,
+                                selection.y,
+                                selection.width,
+                                selection.height,
+                            );
+                            return Command::perform(async {}, move |_| {
+                                Message::RegionSelected(Some(region))
+                            });
+                        }
+                        RegionMessage::Cancelled => {
+                            return Command::perform(async {}, |_| Message::RegionSelected(None));
+                        }
+                        _ => {}
+                    }
+                }
+                Command::none()
+            }
+
+            // Phase 5: Export presets
+            Message::ExportPresetSelected(preset) => {
+                info!("Export preset selected: {}", preset.name);
+                // Update export dialog with preset settings
+                self.export_dialog
+                    .preset_selector
+                    .set_selected_preset(preset.id);
+                self.export_dialog
+                    .preset_selector
+                    .apply_preset_to_config(&mut self.export_dialog.config);
+                Command::none()
+            }
+
+            // Phase 5: Effects settings panel
+            Message::ToggleSettingsPanel => {
+                self.show_settings_panel = !self.show_settings_panel;
+                Command::none()
+            }
+            Message::SettingsMessage(msg) => {
+                self.settings_panel.update(msg);
+                info!("Effects settings updated");
+                Command::none()
+            }
+
+            // Phase 5: Clipboard integration
+            Message::CopyToClipboard(path) => {
+                info!("Copying exported file to clipboard: {:?}", path);
+                self.last_exported_path = Some(path);
+                // TODO: Implement actual clipboard integration with file path
                 Command::none()
             }
         }

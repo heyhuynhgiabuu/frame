@@ -1,0 +1,394 @@
+{
+  "beadId": "bd-2g1",
+  "prdName": "phase-5-mvp-polish",
+  "tasks": [
+    {
+      "id": "core-1",
+      "category": "core",
+      "description": "Add webcam capture using nokhwa crate",
+      "steps": [
+        "cargo build -p frame-core --features webcam succeeds",
+        "WebcamCapture::list_devices() returns available cameras",
+        "WebcamCapture::start() begins capture loop",
+        "WebcamCapture::stop() cleanly terminates",
+        "Frame data matches expected dimensions"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/Cargo.toml", "packages/core/src/capture/webcam.rs"]
+      }
+    },
+    {
+      "id": "core-2",
+      "category": "core",
+      "description": "Composite webcam frame onto screen recording",
+      "steps": [
+        "Webcam appears at configured corner position",
+        "Circle and rounded-rectangle shapes work",
+        "Webcam scales proportionally to output resolution",
+        "Webcam can be toggled on/off during playback",
+        "Performance: <5ms overhead per frame"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "packages/core/src/effects/webcam_overlay.rs",
+          "packages/core/src/effects/pipeline.rs"
+        ]
+      }
+    },
+    {
+      "id": "core-3",
+      "category": "core",
+      "description": "Calculate output dimensions and letterbox/pillarbox areas",
+      "steps": [
+        "AspectRatio::Horizontal16x9.dimensions(1920) returns (1920, 1080)",
+        "AspectRatio::Vertical9x16.dimensions(1080) returns (1080, 1920)",
+        "AspectRatio::Square.dimensions(1080) returns (1080, 1080)",
+        "Letterbox/pillarbox coordinates calculated correctly",
+        "Works with any input resolution"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/aspect_ratio.rs"]
+      }
+    },
+    {
+      "id": "core-4",
+      "category": "core",
+      "description": "Apply aspect ratio during export encoding",
+      "steps": [
+        "Exported video has correct dimensions for selected ratio",
+        "Background color fills letterbox/pillarbox",
+        "Video content centered or offset per settings",
+        "No stretching or squishing of content"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-3"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/core/src/encoder.rs"]
+      }
+    },
+    {
+      "id": "core-5",
+      "category": "core",
+      "description": "Data model and serialization for export presets",
+      "steps": [
+        "ExportPreset struct with codec, resolution, bitrate, format",
+        "Built-in presets load correctly",
+        "Custom presets save to disk",
+        "Presets can be imported/exported as JSON"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/export_preset.rs"]
+      }
+    },
+    {
+      "id": "core-6",
+      "category": "core",
+      "description": "Define standard presets for common use cases",
+      "steps": [
+        "Web preset: H.264, 1080p, 8Mbps, MP4",
+        "YouTube preset: H.264, 4K, 20Mbps, MP4",
+        "Twitter/X preset: H.264, 720p, 5Mbps, MP4 (max 2:20)",
+        "Instagram preset: H.264, 1080x1080, 8Mbps, MP4",
+        "GIF preset: GIF, 480p, 10fps, optimized palette"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-5"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/core/src/export_preset.rs"]
+      }
+    },
+    {
+      "id": "core-7",
+      "category": "core",
+      "description": "High-quality GIF export using gifski",
+      "steps": [
+        "cargo build -p frame-core --features gif succeeds",
+        "GIF output plays smoothly at configured FPS",
+        "Palette optimization produces good colors",
+        "File size reasonable (<10MB for 10s clip)",
+        "Handles transparency if background removed"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-5"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/Cargo.toml", "packages/core/src/encoder/gif.rs"]
+      }
+    },
+    {
+      "id": "core-8",
+      "category": "core",
+      "description": "Drop shadow effect on video frame",
+      "steps": [
+        "Shadow renders behind video content",
+        "Configurable: offset_x, offset_y, blur_radius, color",
+        "Shadow respects rounded corners",
+        "Performance: <2ms per frame overhead"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/shadow.rs", "packages/core/src/effects/pipeline.rs"]
+      }
+    },
+    {
+      "id": "core-9",
+      "category": "core",
+      "description": "Inset/depth effect on video edges",
+      "steps": [
+        "Subtle depth effect visible on edges",
+        "Configurable: intensity, color (light/dark)",
+        "Works with rounded corners",
+        "Can be disabled independently"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/inset.rs", "packages/core/src/effects/pipeline.rs"]
+      }
+    },
+    {
+      "id": "core-10",
+      "category": "core",
+      "description": "Store and apply region to capture stream",
+      "steps": [
+        "CaptureRegion stored in project settings",
+        "ScreenCaptureKit captures only selected region",
+        "Region can be changed after recording (cropping)",
+        "Full screen capture still works (region = None)"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["ui-3"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/core/src/capture/mod.rs", "packages/core/src/project.rs"]
+      }
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "UI for webcam configuration in settings panel",
+      "steps": [
+        "Camera device dropdown populated with available cameras",
+        "Preview shows live webcam feed",
+        "Position selector (4 corners)",
+        "Shape toggle (circle/rounded rect)",
+        "Size slider (small/medium/large)",
+        "On/off toggle"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": [
+          "packages/ui-components/src/components/webcam_settings.rs",
+          "packages/ui-components/src/components/settings_panel.rs"
+        ]
+      }
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Aspect ratio selector in export dialog",
+      "steps": [
+        "Dropdown with presets: Original, 16:9, 9:16, 1:1, 4:3",
+        "Preview updates to show selected ratio",
+        "Custom ratio input (advanced)",
+        "Remembers last used ratio"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-3"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/ui-components/src/components/export_dialog.rs"]
+      }
+    },
+    {
+      "id": "ui-3",
+      "category": "ui",
+      "description": "Interactive overlay for selecting recording region",
+      "steps": [
+        "Full-screen transparent overlay appears",
+        "Drag to draw selection rectangle",
+        "Handles for resizing selection",
+        "Dimension labels shown (width x height)",
+        "Cancel with Escape, confirm with Enter/click outside"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/ui-components/src/components/region_selector.rs"]
+      }
+    },
+    {
+      "id": "ui-4",
+      "category": "ui",
+      "description": "Preset selection and management in export dialog",
+      "steps": [
+        "Dropdown shows all presets (built-in + custom)",
+        "Selected preset populates all settings",
+        "Save as preset creates custom preset",
+        "Delete removes custom presets (not built-in)",
+        "Settings can be modified after selecting preset"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-5", "core-6"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/ui-components/src/components/export_dialog.rs"]
+      }
+    },
+    {
+      "id": "ui-5",
+      "category": "ui",
+      "description": "Settings for shadow and inset in settings panel",
+      "steps": [
+        "Shadow section: enable toggle, offset sliders, blur slider, color picker",
+        "Inset section: enable toggle, intensity slider",
+        "Live preview updates as settings change",
+        "Reset to defaults button"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-8", "core-9"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/ui-components/src/components/settings_panel.rs"]
+      }
+    },
+    {
+      "id": "desktop-1",
+      "category": "desktop",
+      "description": "Copy exported video/GIF directly to clipboard",
+      "steps": [
+        "Copy to Clipboard button in export complete dialog",
+        "MP4 copies as file reference",
+        "GIF copies as image data (pasteable into apps)",
+        "macOS pasteboard integration works",
+        "Success/failure feedback shown"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-7"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/clipboard.rs", "apps/desktop/src/ui/export.rs"]
+      }
+    },
+    {
+      "id": "desktop-2",
+      "category": "desktop",
+      "description": "Wire all new features into desktop app",
+      "steps": [
+        "Webcam toggle in recording controls",
+        "Aspect ratio in export flow",
+        "Region selection mode accessible from menu",
+        "Export presets working end-to-end",
+        "Shadow/inset visible in preview"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [
+          "core-1",
+          "core-2",
+          "core-3",
+          "core-4",
+          "core-5",
+          "core-6",
+          "core-7",
+          "core-8",
+          "core-9",
+          "core-10",
+          "ui-1",
+          "ui-2",
+          "ui-3",
+          "ui-4",
+          "ui-5",
+          "desktop-1"
+        ],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/app.rs", "apps/desktop/src/ui/"]
+      }
+    },
+    {
+      "id": "docs-1",
+      "category": "docs",
+      "description": "Update AGENTS.md and add feature documentation",
+      "steps": [
+        "AGENTS.md updated for new modules",
+        "Webcam setup guide",
+        "Export presets documentation",
+        "Region recording guide"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["desktop-2"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["AGENTS.md", "packages/core/AGENTS.md"]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Capture: packages/core/src/capture/",
+      "Effects: packages/core/src/effects/",
+      "Encoder: packages/core/src/encoder/",
+      "UI components: packages/ui-components/src/components/",
+      "Desktop app: apps/desktop/src/"
+    ],
+    "keyFiles": [
+      "packages/core/Cargo.toml",
+      "packages/core/src/lib.rs",
+      "packages/core/src/effects/mod.rs",
+      "packages/core/src/effects/pipeline.rs",
+      "apps/desktop/src/app.rs"
+    ],
+    "nonGoals": [
+      "Cloud sync and shareable links",
+      "Team workspaces",
+      "iOS device recording",
+      "AI transcription/captions",
+      "Motion blur effect"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": ["bd-cdx"],
+    "parallel": false,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 60
+  }
+}

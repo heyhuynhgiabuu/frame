@@ -121,6 +121,27 @@ pub mod macos {
                 stream_config.set_captures_audio(true);
             }
 
+            // Apply capture region if set (ScreenCaptureKit sourceRect)
+            if let Some(region) = &config.capture_region {
+                if region.is_valid() {
+                    // Convert region to CGRect (origin is bottom-left on macOS)
+                    let source_rect = screencapturekit::cg::CGRect::new(
+                        region.x as f64,
+                        region.y as f64,
+                        region.width as f64,
+                        region.height as f64,
+                    );
+                    stream_config.set_source_rect(source_rect);
+                    tracing::info!(
+                        "Applied capture region: x={}, y={}, w={}, h={}",
+                        region.x,
+                        region.y,
+                        region.width,
+                        region.height
+                    );
+                }
+            }
+
             stream_config
         }
     }

@@ -2,6 +2,7 @@ use iced::{Application, Settings, Size};
 use tracing::info;
 
 mod app;
+mod clipboard;
 mod recording;
 mod ui;
 

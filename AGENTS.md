@@ -50,12 +50,19 @@ pub fn do_work() -> FrameResult<()> {
 
 ## Key Modules
 
-| Module                           | Purpose                                        |
-| -------------------------------- | ---------------------------------------------- |
-| `packages/core/src/capture/`     | Screen/audio capture (macOS: ScreenCaptureKit) |
-| `packages/core/src/encoder.rs`   | Video encoding (ffmpeg-sidecar)                |
-| `packages/core/src/auto_save.rs` | Auto-save & crash recovery                     |
-| `packages/core/src/error.rs`     | Typed errors with recovery actions             |
+| Module                                        | Purpose                                        |
+| --------------------------------------------- | ---------------------------------------------- |
+| `packages/core/src/capture/`                  | Screen/audio capture (macOS: ScreenCaptureKit) |
+| `packages/core/src/capture/webcam.rs`         | Webcam capture (nokhwa)                        |
+| `packages/core/src/encoder.rs`                | Video encoding (ffmpeg-sidecar)                |
+| `packages/core/src/encoder/gif.rs`            | GIF encoding (gifski)                          |
+| `packages/core/src/auto_save.rs`              | Auto-save & crash recovery                     |
+| `packages/core/src/error.rs`                  | Typed errors with recovery actions             |
+| `packages/core/src/effects/aspect_ratio.rs`   | Aspect ratio calculations                      |
+| `packages/core/src/effects/shadow.rs`         | Shadow effect                                  |
+| `packages/core/src/effects/inset.rs`          | Inset/depth effect                             |
+| `packages/core/src/effects/webcam_overlay.rs` | Webcam overlay compositing                     |
+| `packages/core/src/export_preset.rs`          | Export preset system                           |
 
 ## Boundaries
 

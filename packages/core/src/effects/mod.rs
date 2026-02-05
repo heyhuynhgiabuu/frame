@@ -12,11 +12,23 @@ use crate::FrameResult;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+// Re-export shadow config
+pub use shadow::ShadowConfig;
+
+// Re-export webcam overlay config
+pub use webcam_overlay::{
+    Offset, WebcamOverlay, WebcamOverlayConfig, WebcamPosition, WebcamShape, WebcamSize,
+};
+
 // Sub-modules
+pub mod aspect_ratio; // Task: core-3
 pub mod background; // Task: effects-4
 pub mod cursor; // Task: effects-1
+pub mod inset; // Task: core-9
 pub mod keyboard; // Task: effects-3
 pub mod pipeline; // Task: integration-1
+pub mod shadow; // Task: core-8
+pub mod webcam_overlay; // Task: core-2
 pub mod zoom; // Task: effects-2
 
 // Re-export the integrated pipeline
@@ -222,7 +234,7 @@ pub enum ImageScaleMode {
 }
 
 /// RGBA color (0.0-1.0 range)
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
@@ -397,6 +409,9 @@ pub struct EffectsConfig {
     pub zoom: ZoomConfig,
     pub keyboard: KeyboardConfig,
     pub background: Background,
+    pub inset: inset::InsetConfig,
+    pub shadow: ShadowConfig,
+    pub webcam_overlay: WebcamOverlayConfig,
 }
 
 /// Input events for effects processing
