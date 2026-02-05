@@ -10,6 +10,8 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
 
+const AUTO_SAVE_INTERVAL_SECS: u64 = 10;
+
 pub struct FrameApp {
     pub state: AppState,
     pub theme: Theme,
@@ -20,6 +22,16 @@ pub struct FrameApp {
     pub permissions: Permissions,
     pub timeline: Option<Timeline>,
     pub export_dialog: ExportDialog,
+    pub current_project_id: Option<String>,
+    pub incomplete_recordings: Vec<PathBuf>,
+    pub auto_save_status: AutoSaveStatus,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct AutoSaveStatus {
+    pub last_save: Option<Instant>,
+    pub is_saving: bool,
+    pub save_count: u32,
 }
 
 /// Permission states
@@ -66,13 +78,26 @@ pub enum Message {
     // Recording controls
     StartRecording,
     StopRecording,
-    RecordingStarted,
+    RecordingStarted {
+        project_id: String,
+    },
     RecordingStopped {
         project_id: String,
         path: PathBuf,
     },
     RecordingError(String),
     UpdateRecordingStats,
+
+    // Auto-save
+    AutoSaveTick,
+    AutoSaveComplete,
+
+    // Recovery
+    CheckIncompleteRecordings,
+    IncompleteRecordingsFound(Vec<PathBuf>),
+    RecoverRecording(PathBuf),
+    DeleteIncompleteRecording(PathBuf),
+    RecoveryComplete(PathBuf),
 
     // Export
     ExportProject(String),
@@ -113,8 +138,15 @@ impl Application for FrameApp {
                 start_time: None,
                 permissions: Permissions::default(),
                 timeline: None,
+                export_dialog: ExportDialog::default(),
+                current_project_id: None,
+                incomplete_recordings: Vec::new(),
+                auto_save_status: AutoSaveStatus::default(),
             },
-            Command::perform(async {}, |_| Message::CheckPermissions),
+            Command::batch([
+                Command::perform(async {}, |_| Message::CheckPermissions),
+                Command::perform(async {}, |_| Message::CheckIncompleteRecordings),
+            ]),
         )
     }
 
@@ -132,6 +164,9 @@ impl Application for FrameApp {
             }
             AppState::Previewing { project_id, .. } => {
                 format!("Frame - Preview: {}", project_id)
+            }
+            AppState::ExportConfiguring { project_id, .. } => {
+                format!("Frame - Export Config: {}", project_id)
             }
             AppState::Exporting {
                 project_id,
@@ -199,7 +234,7 @@ impl Application for FrameApp {
 
             // Recording controls
             Message::StartRecording => {
-                info!("Starting recording session");
+                info!("Starting recording session with auto-save");
                 self.state = AppState::Recording;
                 self.start_time = Some(Instant::now());
                 self.frame_count = 0;
@@ -209,7 +244,7 @@ impl Application for FrameApp {
                     async move {
                         let mut service = RecordingService::new();
                         match service.start_recording(config).await {
-                            Ok(()) => Message::RecordingStarted,
+                            Ok(project_id) => Message::RecordingStarted { project_id },
                             Err(e) => Message::RecordingError(e.to_string()),
                         }
                     },
@@ -222,8 +257,7 @@ impl Application for FrameApp {
                     async move {
                         let mut service = RecordingService::new();
                         match service.stop_recording().await {
-                            Ok(path) => {
-                                let project_id = uuid::Uuid::new_v4().to_string();
+                            Ok((project_id, path)) => {
                                 Message::RecordingStopped { project_id, path }
                             }
                             Err(e) => Message::RecordingError(e.to_string()),
@@ -232,12 +266,19 @@ impl Application for FrameApp {
                     |msg| msg,
                 )
             }
-            Message::RecordingStarted => {
-                debug!("Recording started successfully");
+            Message::RecordingStarted { project_id } => {
+                debug!(
+                    "Recording started with auto-save: project_id={}",
+                    project_id
+                );
+                self.current_project_id = Some(project_id);
                 Command::none()
             }
             Message::RecordingStopped { project_id, path } => {
                 info!("Recording stopped, project: {} at {:?}", project_id, path);
+                self.current_project_id = None;
+                self.auto_save_status.last_save = None;
+
                 // Create timeline for the recording
                 let mut timeline = Timeline::new(Duration::from_secs(30)); // TODO: Get actual duration
                                                                            // Add a clip representing the full recording
@@ -250,6 +291,73 @@ impl Application for FrameApp {
                 self.timeline = Some(timeline);
                 self.state = AppState::Previewing { project_id, path };
                 self.start_time = None;
+                Command::none()
+            }
+
+            // Auto-save
+            Message::AutoSaveTick => {
+                if matches!(self.state, AppState::Recording) {
+                    self.auto_save_status.is_saving = true;
+                    Command::perform(async {}, |_| Message::AutoSaveComplete)
+                } else {
+                    Command::none()
+                }
+            }
+            Message::AutoSaveComplete => {
+                self.auto_save_status.is_saving = false;
+                self.auto_save_status.last_save = Some(Instant::now());
+                self.auto_save_status.save_count += 1;
+                debug!(
+                    "Auto-save completed, count: {}",
+                    self.auto_save_status.save_count
+                );
+                Command::none()
+            }
+
+            // Recovery
+            Message::CheckIncompleteRecordings => Command::perform(
+                async {
+                    match RecordingService::check_for_incomplete_recordings() {
+                        Ok(incomplete) => Message::IncompleteRecordingsFound(incomplete),
+                        Err(_) => Message::IncompleteRecordingsFound(Vec::new()),
+                    }
+                },
+                |msg| msg,
+            ),
+            Message::IncompleteRecordingsFound(incomplete) => {
+                if !incomplete.is_empty() {
+                    info!("Found {} incomplete recordings", incomplete.len());
+                    self.incomplete_recordings = incomplete;
+                    // TODO: Show recovery dialog
+                }
+                Command::none()
+            }
+            Message::RecoverRecording(path) => Command::perform(
+                async move {
+                    match RecordingService::recover_incomplete_recording(&path) {
+                        Ok(Some(recovered_path)) => Message::RecoveryComplete(recovered_path),
+                        Ok(None) => {
+                            Message::RecordingError("No recording found to recover".to_string())
+                        }
+                        Err(e) => Message::RecordingError(e.to_string()),
+                    }
+                },
+                |msg| msg,
+            ),
+            Message::DeleteIncompleteRecording(path) => {
+                if let Err(e) = RecordingService::delete_incomplete_recording(&path) {
+                    error!("Failed to delete incomplete recording: {}", e);
+                }
+                self.incomplete_recordings.retain(|p| p != &path);
+                Command::none()
+            }
+            Message::RecoveryComplete(path) => {
+                info!("Successfully recovered recording at {:?}", path);
+                // Remove from incomplete list
+                self.incomplete_recordings.retain(|p| !path.starts_with(p));
+                // Offer to open the recovered recording
+                let project_id = uuid::Uuid::new_v4().to_string();
+                self.state = AppState::Previewing { project_id, path };
                 Command::none()
             }
             Message::RecordingError(error) => {
@@ -363,13 +471,21 @@ impl Application for FrameApp {
     }
 
     fn subscription(&self) -> Subscription<Message> {
+        let mut subscriptions = Vec::new();
+
         // Update recording stats every second while recording
-        match self.state {
-            AppState::Recording => {
-                time::every(Duration::from_secs(1)).map(|_| Message::UpdateRecordingStats)
-            }
-            _ => Subscription::none(),
+        if matches!(self.state, AppState::Recording) {
+            subscriptions
+                .push(time::every(Duration::from_secs(1)).map(|_| Message::UpdateRecordingStats));
+
+            // Auto-save tick every 10 seconds while recording
+            subscriptions.push(
+                time::every(Duration::from_secs(AUTO_SAVE_INTERVAL_SECS))
+                    .map(|_| Message::AutoSaveTick),
+            );
         }
+
+        Subscription::batch(subscriptions)
     }
 }
 

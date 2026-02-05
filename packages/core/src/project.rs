@@ -12,6 +12,20 @@ pub struct Project {
     pub settings: ProjectSettings,
     pub recordings: Vec<Recording>,
     pub exports: Vec<Export>,
+    /// Current recording state for auto-save tracking
+    #[serde(default)]
+    pub recording_state: RecordingState,
+}
+
+/// Recording state for auto-save tracking
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+pub enum RecordingState {
+    #[default]
+    Idle,
+    Recording,
+    Paused,
+    Completed,
+    Error,
 }
 
 impl Project {
@@ -25,6 +39,7 @@ impl Project {
             settings: ProjectSettings::default(),
             recordings: Vec::new(),
             exports: Vec::new(),
+            recording_state: RecordingState::Idle,
         }
     }
 

@@ -1,11 +1,15 @@
-//! Recording service that manages capture lifecycle
+//! Recording service that manages capture lifecycle with auto-save support
 
+use frame_core::auto_save::{AutoSaveConfig, AutoSaveService};
 use frame_core::capture::{create_capture, CaptureArea, CaptureConfig, ScreenCapture};
 use frame_core::encoder::{Encoder, EncoderConfig, VideoCodec};
+use frame_core::project::{Recording, RecordingState};
 use frame_core::{FrameError, FrameResult};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
+use tracing::{debug, error, info};
 
 /// Recording configuration
 #[derive(Debug, Clone)]
@@ -15,6 +19,7 @@ pub struct RecordingConfig {
     pub capture_audio: bool,
     pub frame_rate: u32,
     pub output_path: PathBuf,
+    pub project_name: Option<String>,
 }
 
 impl Default for RecordingConfig {
@@ -25,13 +30,14 @@ impl Default for RecordingConfig {
             capture_audio: true,
             frame_rate: 30,
             output_path: PathBuf::from("recording.mp4"),
+            project_name: None,
         }
     }
 }
 
 /// Recording session state
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum RecordingState {
+pub enum RecordingSessionState {
     Idle,
     Initializing,
     Recording,
@@ -39,33 +45,36 @@ pub enum RecordingState {
     Error,
 }
 
-/// Recording service that manages the full recording lifecycle
+/// Recording service that manages the full recording lifecycle with auto-save
 pub struct RecordingService {
-    state: RecordingState,
+    state: RecordingSessionState,
     capture: Option<Arc<Mutex<Box<dyn ScreenCapture>>>>,
     encoder: Option<Encoder>,
     config: RecordingConfig,
     frame_count: u64,
+    auto_save: AutoSaveService,
+    start_time: Option<Instant>,
+    recording_id: Option<String>,
 }
 
 impl RecordingService {
     pub fn new() -> Self {
         Self {
-            state: RecordingState::Idle,
+            state: RecordingSessionState::Idle,
             capture: None,
             encoder: None,
             config: RecordingConfig::default(),
             frame_count: 0,
+            auto_save: AutoSaveService::new(),
+            start_time: None,
+            recording_id: None,
         }
     }
 
     /// Check if screen recording permission is granted
     pub async fn check_screen_permission() -> bool {
-        // On macOS, try to create a capture instance to test permission
-        // The ScreenCaptureKit APIs will fail if permission is not granted
         #[cfg(target_os = "macos")]
         {
-            // Try to create a capture instance - this will fail if no permission
             frame_core::capture::create_capture().is_ok()
         }
         #[cfg(not(target_os = "macos"))]
@@ -75,12 +84,9 @@ impl RecordingService {
     }
 
     /// Request screen recording permission
-    /// On macOS, this opens System Preferences and returns immediately
-    /// User needs to manually grant permission and restart the app
     pub async fn request_screen_permission() {
         #[cfg(target_os = "macos")]
         {
-            // Open System Preferences to Screen Recording
             let _ = std::process::Command::new("open")
                 .args([
                     "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenRecording",
@@ -93,8 +99,6 @@ impl RecordingService {
     pub async fn check_microphone_permission() -> bool {
         #[cfg(target_os = "macos")]
         {
-            // For now, assume microphone permission is granted
-            // In production, use AVFoundation to check
             true
         }
         #[cfg(not(target_os = "macos"))]
@@ -107,7 +111,6 @@ impl RecordingService {
     pub async fn request_microphone_permission() {
         #[cfg(target_os = "macos")]
         {
-            // Open System Preferences to Microphone
             let _ = std::process::Command::new("open")
                 .args([
                     "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
@@ -117,7 +120,7 @@ impl RecordingService {
     }
 
     /// Get current recording state
-    pub fn state(&self) -> RecordingState {
+    pub fn state(&self) -> RecordingSessionState {
         self.state
     }
 
@@ -126,15 +129,52 @@ impl RecordingService {
         self.frame_count
     }
 
-    /// Start recording
-    pub async fn start_recording(&mut self, config: RecordingConfig) -> FrameResult<()> {
-        if self.state != RecordingState::Idle {
+    /// Get recording duration
+    pub fn duration(&self) -> Option<Duration> {
+        self.start_time.map(|t| t.elapsed())
+    }
+
+    /// Get the current project ID if recording
+    pub fn current_project_id(&self) -> Option<&str> {
+        self.auto_save.current_project().map(|p| p.id.as_str())
+    }
+
+    /// Check if auto-save is enabled
+    pub fn auto_save_enabled(&self) -> bool {
+        self.auto_save.is_enabled()
+    }
+
+    /// Start recording with auto-save
+    pub async fn start_recording(&mut self, config: RecordingConfig) -> FrameResult<String> {
+        if self.state != RecordingSessionState::Idle {
             return Err(FrameError::RecordingInProgress);
         }
 
-        self.state = RecordingState::Initializing;
+        self.state = RecordingSessionState::Initializing;
         self.config = config;
         self.frame_count = 0;
+        self.start_time = Some(Instant::now());
+        self.recording_id = Some(uuid::Uuid::new_v4().to_string());
+
+        // Start auto-save for this project
+        let project_name = self.config.project_name.clone().unwrap_or_else(|| {
+            format!(
+                "Recording {}",
+                chrono::Local::now().format("%Y-%m-%d %H:%M")
+            )
+        });
+
+        let project = self.auto_save.start_project(&project_name)?;
+
+        // Mark as incomplete for crash recovery
+        self.auto_save.mark_incomplete()?;
+
+        // Update project recording state
+        if let Some(proj) = self.auto_save.current_project() {
+            let mut proj = proj.clone();
+            proj.recording_state = RecordingState::Recording;
+            proj.save()?;
+        }
 
         // Create capture instance
         let capture = create_capture()?;
@@ -165,27 +205,28 @@ impl RecordingService {
 
         self.capture = Some(capture);
         self.encoder = Some(encoder);
-        self.state = RecordingState::Recording;
+        self.state = RecordingSessionState::Recording;
 
-        // Start capture loop
-        self.run_capture_loop().await;
+        // Start auto-save background task
+        let auto_save_service = std::mem::take(&mut self.auto_save);
+        tokio::spawn(async move {
+            auto_save_service.run_auto_save_loop().await;
+        });
 
-        Ok(())
+        info!(
+            "Recording started with auto-save: project_id={}",
+            project.id
+        );
+        Ok(project.id)
     }
 
-    /// Run the capture loop (spawns async task)
-    async fn run_capture_loop(&mut self) {
-        // This would spawn a task to continuously capture frames
-        // For now, simplified version
-    }
-
-    /// Stop recording
-    pub async fn stop_recording(&mut self) -> FrameResult<PathBuf> {
-        if self.state != RecordingState::Recording {
+    /// Stop recording and finalize auto-save
+    pub async fn stop_recording(&mut self) -> FrameResult<(String, PathBuf)> {
+        if self.state != RecordingSessionState::Recording {
             return Err(FrameError::NoRecordingInProgress);
         }
 
-        self.state = RecordingState::Stopping;
+        self.state = RecordingSessionState::Stopping;
 
         // Stop capture
         if let Some(capture) = &self.capture {
@@ -198,10 +239,48 @@ impl RecordingService {
             encoder.finalize()?;
         }
 
-        self.capture = None;
-        self.state = RecordingState::Idle;
+        // Create recording entry
+        let recording = Recording {
+            id: self.recording_id.take().unwrap_or_default(),
+            started_at: self
+                .start_time
+                .map(|t| {
+                    chrono::DateTime::from_timestamp(t.elapsed().as_secs() as i64, 0)
+                        .unwrap_or_else(|| chrono::Utc::now())
+                })
+                .unwrap_or_else(|| chrono::Utc::now()),
+            duration_ms: self
+                .start_time
+                .map(|t| t.elapsed().as_millis() as u64)
+                .unwrap_or(0),
+            file_path: self.config.output_path.clone(),
+            has_video: true,
+            has_audio: self.config.capture_audio,
+            resolution: frame_core::project::Resolution::Hd1080,
+            frame_rate: self.config.frame_rate,
+        };
 
-        Ok(self.config.output_path.clone())
+        // Add recording to project and finalize
+        // Note: We need to create a new auto-save service since we moved it
+        let mut finalizer = AutoSaveService::new();
+        if let Some(project) = self.auto_save.current_project() {
+            finalizer.current_project = Some(project.clone());
+            finalizer.add_recording(recording).await?;
+
+            if let Some(project) = finalizer.finalize_project().await? {
+                info!("Recording stopped and project finalized: {}", project.id);
+            }
+        }
+
+        self.capture = None;
+        self.state = RecordingSessionState::Idle;
+
+        let project_id = finalizer
+            .current_project()
+            .map(|p| p.id.clone())
+            .unwrap_or_default();
+
+        Ok((project_id, self.config.output_path.clone()))
     }
 
     /// Capture a single frame (for preview)
@@ -214,6 +293,39 @@ impl RecordingService {
         } else {
             Ok(None)
         }
+    }
+
+    /// Check for incomplete recordings and return recovery info
+    pub fn check_for_incomplete_recordings() -> FrameResult<Vec<PathBuf>> {
+        use frame_core::auto_save::RecoveryService;
+        RecoveryService::find_incomplete_projects()
+    }
+
+    /// Recover an incomplete recording
+    pub fn recover_incomplete_recording(project_dir: &PathBuf) -> FrameResult<Option<PathBuf>> {
+        use frame_core::auto_save::RecoveryService;
+
+        if let Some(project) = RecoveryService::load_incomplete_project(project_dir)? {
+            info!(
+                "Found incomplete recording: {} at {:?}",
+                project.id, project_dir
+            );
+
+            // Get the last recording file path
+            if let Some(recording) = project.recordings.last() {
+                let path = recording.file_path.clone();
+                RecoveryService::mark_recovered(project_dir)?;
+                return Ok(Some(path));
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Delete an incomplete recording
+    pub fn delete_incomplete_recording(project_dir: &PathBuf) -> FrameResult<()> {
+        use frame_core::auto_save::RecoveryService;
+        RecoveryService::delete_incomplete_project(project_dir)
     }
 }
 

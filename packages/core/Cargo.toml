@@ -53,6 +53,7 @@ pro = []
 
 [dev-dependencies]
 tracing-subscriber = "0.3"
+tempfile = "3.8"
 
 [[example]]
 name = "encode_test"

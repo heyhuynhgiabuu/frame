@@ -28,6 +28,7 @@ tracing-subscriber = { workspace = true }
 frame-core = { path = "../../packages/core", features = ["capture", "encoding"] }
 frame-ui = { path = "../../packages/ui-components" }
 uuid = { workspace = true }
+chrono = { workspace = true }
 
 # Platform-specific dependencies
 [target.'cfg(target_os = "macos")'.dependencies]

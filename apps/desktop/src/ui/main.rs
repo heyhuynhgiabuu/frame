@@ -19,9 +19,7 @@ pub fn main_view(app: &FrameApp) -> Element<Message> {
             let frame_count = app.frame_count;
             recording_view(elapsed, frame_count)
         }
-        AppState::Previewing { project_id, path } => {
-            preview_view(&project_id, path, app.timeline.as_ref())
-        }
+        AppState::Previewing { project_id, .. } => preview_view(&project_id, app.timeline.as_ref()),
         AppState::ExportConfiguring { project_id, path } => {
             export_dialog_view(&project_id, path, &app.export_dialog)
         }
