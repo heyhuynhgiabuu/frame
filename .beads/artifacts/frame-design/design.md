@@ -201,16 +201,27 @@ frame/
 - [x] Basic timeline UI
 - [x] Export to MP4
 
-### Phase 3: Polish & Effects (Weeks 9-12) 🔄 IN PROGRESS
+### Phase 3: Polish & Effects (Weeks 9-12) ✅ COMPLETE
 
-- [ ] Cursor zoom & smoothing
-- [ ] Keyboard shortcut display
-- [ ] Background customization
-- [ ] Project file format
+- [x] Cursor zoom & smoothing
+- [x] Keyboard shortcut display
+- [x] Background customization
+- [x] Project file format
 
 **Bead:** bd-2f8 | **PRD:** `.beads/artifacts/bd-2f8/prd.md`
 
-### Phase 4: Pro Features (Weeks 13-16)
+### Phase 4: Timeline Editing (Weeks 13-17)
+
+- [ ] Trim (in/out points)
+- [ ] Cut (remove middle sections)
+- [ ] Split (divide clips)
+- [ ] Undo/redo history
+- [ ] Non-destructive editing
+- [ ] Export with edits applied
+
+**Bead:** bd-cdx | **PRD:** `.beads/artifacts/bd-cdx/prd.md`
+
+### Phase 5: Pro Features (Weeks 18+)
 
 - [ ] Cloud sync infrastructure (Supabase + Cloudflare)
 - [ ] Shareable links
