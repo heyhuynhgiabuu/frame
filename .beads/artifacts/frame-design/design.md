@@ -1,6 +1,6 @@
 # Frame - Design Document
 
-**Status**: Phase 1 Complete ✅ | **Last Updated**: 2026-02-05
+**Status**: Phase 2 Complete ✅ | **Last Updated**: 2026-02-05
 
 ---
 
@@ -194,19 +194,21 @@ frame/
 - [x] Screen capture abstraction (macOS first)
 - [x] Simple recording to file
 
-### Phase 2: Core Recording (Weeks 5-8) 🔄 IN PROGRESS
+### Phase 2: Core Recording (Weeks 5-8) ✅ COMPLETE
 
-- [ ] ScreenCaptureKit integration (macOS native capture)
-- [ ] Audio capture (mic + system)
-- [ ] Basic timeline UI
-- [ ] Export to MP4
+- [x] ScreenCaptureKit integration (macOS native capture)
+- [x] Audio capture (mic + system)
+- [x] Basic timeline UI
+- [x] Export to MP4
 
-### Phase 3: Polish & Effects (Weeks 9-12)
+### Phase 3: Polish & Effects (Weeks 9-12) 🔄 IN PROGRESS
 
 - [ ] Cursor zoom & smoothing
 - [ ] Keyboard shortcut display
 - [ ] Background customization
 - [ ] Project file format
+
+**Bead:** bd-2f8 | **PRD:** `.beads/artifacts/bd-2f8/prd.md`
 
 ### Phase 4: Pro Features (Weeks 13-16)
 
