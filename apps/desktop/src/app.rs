@@ -3,6 +3,8 @@
 use crate::recording::{RecordingConfig, RecordingService};
 use crate::ui::main_view;
 use frame_core::capture::CaptureArea;
+use frame_core::{FrameError, RecoveryAction};
+use frame_ui::error_dialog::{ErrorDialog, ErrorDialogMessage};
 use frame_ui::export_dialog::{ExportDialog, ExportDialogMessage};
 use frame_ui::timeline::Timeline;
 use iced::{executor, time, Application, Command, Element, Subscription, Theme};
@@ -22,6 +24,7 @@ pub struct FrameApp {
     pub permissions: Permissions,
     pub timeline: Option<Timeline>,
     pub export_dialog: ExportDialog,
+    pub error_dialog: ErrorDialog,
     pub current_project_id: Option<String>,
     pub incomplete_recordings: Vec<PathBuf>,
     pub auto_save_status: AutoSaveStatus,
@@ -117,6 +120,11 @@ pub enum Message {
 
     // Export Dialog
     ExportDialogMessage(ExportDialogMessage),
+
+    // Error Dialog
+    ErrorDialogMessage(ErrorDialogMessage),
+    /// Show error dialog with error
+    ShowError(String),
 }
 
 impl Application for FrameApp {
@@ -139,6 +147,7 @@ impl Application for FrameApp {
                 permissions: Permissions::default(),
                 timeline: None,
                 export_dialog: ExportDialog::default(),
+                error_dialog: ErrorDialog::new(),
                 current_project_id: None,
                 incomplete_recordings: Vec::new(),
                 auto_save_status: AutoSaveStatus::default(),
@@ -362,8 +371,44 @@ impl Application for FrameApp {
             }
             Message::RecordingError(error) => {
                 error!("Recording error: {}", error);
-                self.state = AppState::Error(error);
+                // Open error dialog instead of just setting error state
+                self.error_dialog
+                    .open(frame_core::FrameError::Unknown(error));
+                self.state = AppState::Idle;
                 self.start_time = None;
+                Command::none()
+            }
+
+            // Error Dialog
+            Message::ErrorDialogMessage(dialog_msg) => {
+                if let Some(recovery_action) = self.error_dialog.update(dialog_msg) {
+                    match recovery_action {
+                        frame_core::RecoveryAction::Retry => {
+                            // Retry the last recording operation
+                            return Command::perform(async {}, |_| Message::StartRecording);
+                        }
+                        frame_core::RecoveryAction::RequestPermissions => {
+                            return Command::perform(async {}, |_| {
+                                Message::RequestScreenPermission
+                            });
+                        }
+                        frame_core::RecoveryAction::OpenSettings => {
+                            // Open system settings (platform-specific)
+                            #[cfg(target_os = "macos")]
+                            {
+                                let _ = std::process::Command::new("open")
+                                    .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+                                    .spawn();
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                Command::none()
+            }
+            Message::ShowError(error_msg) => {
+                self.error_dialog
+                    .open(frame_core::FrameError::Unknown(error_msg));
                 Command::none()
             }
             Message::UpdateRecordingStats => {
