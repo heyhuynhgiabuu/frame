@@ -44,5 +44,5 @@ tempfile = "3.10"
 [features]
 default = ["capture"]
 capture = ["screencapturekit", "core-graphics", "core-foundation", "frame-core/capture", "frame-core/encoding"]
-stub-capture = ["frame-core/stub-capture"]  # UI testing without real capture
+stub-capture = ["frame-core/stub-capture", "frame-core/encoding"]  # UI testing without real capture
 pro = ["frame-core/pro"]
