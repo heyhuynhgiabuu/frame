@@ -1,6 +1,6 @@
 # frame-core
 
-Core library: capture, encoding, auto-save, error handling.
+Core library: capture, encoding, auto-save, effects, error handling.
 
 ## Structure
 
@@ -10,10 +10,58 @@ src/
 │   ├── mod.rs      # ScreenCapture trait
 │   ├── platform.rs # MacOSScreenCapture impl
 │   └── audio.rs    # Audio capture
+├── effects/        # Video effects and compositing
+│   ├── mod.rs      # Types, configs, EffectsPipeline trait
+│   ├── pipeline.rs # IntegratedPipeline (combines all effects)
+│   ├── cursor.rs   # CursorTracker (position, velocity, idle)
+│   ├── zoom.rs     # ZoomEffect (click-to-zoom, smooth transitions)
+│   ├── keyboard.rs # KeyboardCapture (event buffer, combo display)
+│   └── background.rs # BackgroundCompositor (padding, gradients)
 ├── error.rs        # FrameError + recovery actions
 ├── encoder.rs      # FFmpeg sidecar wrapper
 ├── auto_save.rs    # Background persistence
-└── project.rs      # Project/Recording models
+└── project.rs      # Project/Recording models (.frame format)
+```
+
+## Effects System
+
+```rust
+use frame_core::effects::{IntegratedPipeline, EffectsConfig, EffectInput, MouseEvent};
+
+// Create pipeline with default config
+let mut pipeline = IntegratedPipeline::default();
+
+// Or customize config
+let config = EffectsConfig {
+    zoom: ZoomConfig { enabled: true, max_zoom: 1.5, .. },
+    keyboard: KeyboardConfig { enabled: true, .. },
+    background: Background::default(),
+};
+let mut pipeline = IntegratedPipeline::new(config);
+
+// Process input events
+pipeline.process_input(EffectInput::Mouse(MouseEvent::Click { x, y, button }));
+
+// Process frames
+let result = pipeline.process_frame(frame)?;
+// result.frame = processed frame
+// result.keyboard_badges = list of KeyboardBadge { text, position, opacity }
+```
+
+## Project Format
+
+Binary `.frame` format (v1):
+
+```
+MAGIC: b"FRAME" (5 bytes)
+VERSION: u32 le (4 bytes)
+JSON: Project struct
+```
+
+```rust
+// Save/load projects
+project.save_to_file("path.frame")?;
+let loaded = Project::load_from_file("path.frame")?;
 ```
 
 ## Patterns

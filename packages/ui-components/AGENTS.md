@@ -9,12 +9,14 @@ src/
 ├── lib.rs          # Public exports
 ├── theme.rs        # Dark theme default
 └── components/
-    ├── timeline.rs     # Canvas-based recording timeline
-    ├── error_dialog.rs # FrameError → modal with recovery
-    ├── export_dialog.rs# Export configuration UI
-    ├── button.rs       # primary_button, secondary_button
-    ├── input.rs        # input_field wrapper
-    └── icons.rs        # Placeholder for icons
+    ├── timeline.rs       # Canvas-based recording timeline
+    ├── error_dialog.rs   # FrameError → modal with recovery
+    ├── export_dialog.rs  # Export configuration UI
+    ├── keyboard_badge.rs # Keyboard shortcut overlay widget
+    ├── settings_panel.rs # Effects configuration UI
+    ├── button.rs         # primary_button, secondary_button
+    ├── input.rs          # input_field wrapper
+    └── icons.rs          # Placeholder for icons
 ```
 
 ## Patterns
@@ -34,13 +36,37 @@ timeline.set_width(container_width);
 timeline.view().map(Message::Timeline)
 ```
 
+**Settings Panel**: Effects configuration
+
+```rust
+use frame_ui::settings_panel::{SettingsPanel, SettingsMessage};
+
+let mut panel = SettingsPanel::new();  // or with_config(config)
+panel.update(SettingsMessage::ZoomEnabledChanged(true));
+panel.view().map(Message::Settings)
+// Access config: panel.config()
+```
+
+**Keyboard Badge**: Shortcut overlay
+
+```rust
+use frame_ui::keyboard_badge::{KeyboardBadge, BadgeConfig, BadgePosition};
+
+let mut badge = KeyboardBadge::with_config(BadgeConfig::for_recording());
+badge.set_content(Some("⌘S".to_string()));
+badge.update_time(current_time);
+badge.view() // or view_fixed(width, height)
+```
+
 ## Key Components
 
-| Component      | Purpose                                |
-| -------------- | -------------------------------------- |
-| `Timeline`     | Canvas widget for recording navigation |
-| `ErrorDialog`  | Maps `FrameError` → user-facing modal  |
-| `ExportDialog` | Export format/quality configuration    |
+| Component       | Purpose                                     |
+| --------------- | ------------------------------------------- |
+| `Timeline`      | Canvas widget for recording navigation      |
+| `ErrorDialog`   | Maps `FrameError` → user-facing modal       |
+| `ExportDialog`  | Export format/quality configuration         |
+| `KeyboardBadge` | Shortcut display with fade animation        |
+| `SettingsPanel` | Effects (zoom/keyboard/background) settings |
 
 ## Theme
 
