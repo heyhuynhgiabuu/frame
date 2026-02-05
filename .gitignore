@@ -1,0 +1,40 @@
+/target
+**/*.rs.bk
+Cargo.lock
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+/node_modules
+**/node_modules
+
+# Build outputs
+/dist
+**/dist
+/.turbo
+**/.turbo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Frame specific
+/apps/desktop/recordings/
+/apps/desktop/projects/
+
+# opencode
+.opencode
+
+# bv (beads viewer) local config and caches
+.bv/

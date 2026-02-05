@@ -1,0 +1,42 @@
+[package]
+name = "frame-desktop"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Frame - Beautiful screen recorder for developers"
+
+[[bin]]
+name = "frame"
+path = "src/main.rs"
+
+[dependencies]
+# Workspace dependencies
+iced = { workspace = true }
+iced_aw = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Local dependencies
+frame-core = { path = "../../packages/core", features = ["capture", "encoding"] }
+frame-ui = { path = "../../packages/ui-components" }
+uuid = { workspace = true }
+
+# Platform-specific dependencies
+[target.'cfg(target_os = "macos")'.dependencies]
+screencapturekit = { workspace = true, optional = true }
+core-graphics = { workspace = true, optional = true }
+core-foundation = { workspace = true, optional = true }
+objc = "0.2"
+
+[features]
+default = ["capture"]
+capture = ["screencapturekit", "core-graphics", "core-foundation", "frame-core/capture"]
+pro = ["frame-core/pro"]

@@ -1,0 +1,27 @@
+{
+	"name": "@frame/root",
+	"version": "0.1.0",
+	"private": true,
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"type": "module",
+	"scripts": {
+		"dev": "bun run --filter '*' dev",
+		"build": "bun run --filter '*' build",
+		"test": "bun run --filter '*' test",
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"format": "biome format . --write",
+		"typecheck": "bun run --filter '*' typecheck",
+		"clean": "rm -rf node_modules **/node_modules **/dist **/.turbo"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.5.3",
+		"typescript": "^5.3.3"
+	},
+	"engines": {
+		"bun": ">=1.0.0"
+	}
+}

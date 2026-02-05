@@ -1,0 +1,59 @@
+[package]
+name = "frame-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Core library for Frame screen recorder"
+
+[dependencies]
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+directories = { workspace = true }
+async-trait = "0.1"
+
+# Video encoding (optional, enabled by default)
+ffmpeg-next = { workspace = true, optional = true }
+ffmpeg-sidecar = { workspace = true, optional = true }
+hound = { workspace = true, optional = true }
+
+# Platform-specific screen capture
+[target.'cfg(target_os = "macos")'.dependencies]
+screencapturekit = { workspace = true, optional = true }
+core-graphics = { workspace = true, optional = true }
+core-foundation = { workspace = true, optional = true }
+
+# Audio
+cpal = { workspace = true, optional = true }
+rubato = { workspace = true, optional = true }
+
+[features]
+default = ["capture"]
+capture = ["screencapturekit", "core-graphics", "core-foundation", "cpal", "rubato"]
+encoding = ["ffmpeg-sidecar", "hound"]
+encoding-libav = ["ffmpeg-next"]
+pro = []
+
+[dev-dependencies]
+tracing-subscriber = "0.3"
+
+[[example]]
+name = "encode_test"
+required-features = ["encoding"]

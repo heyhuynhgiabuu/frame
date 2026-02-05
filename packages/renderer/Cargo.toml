@@ -1,0 +1,13 @@
+[package]
+name = "frame-renderer"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "GPU-accelerated rendering for Frame"
+
+[dependencies]
+wgpu = { workspace = true }
+anyhow = { workspace = true }
