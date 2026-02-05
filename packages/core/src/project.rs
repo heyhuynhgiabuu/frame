@@ -308,7 +308,7 @@ mod tests {
 
     #[test]
     fn test_project_roundtrip() {
-        let mut file = NamedTempFile::new().unwrap();
+        let file = NamedTempFile::new().unwrap();
         let project = Project::new("Roundtrip Test");
 
         project.save_to_file(file.path()).unwrap();

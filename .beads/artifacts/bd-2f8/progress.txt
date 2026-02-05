@@ -1,0 +1,18 @@
+# Progress Log
+
+Bead: bd-2f8
+Started: 2026-02-05
+
+## Codebase Patterns
+
+<!-- Consolidate reusable patterns here -->
+
+- **Error handling:** Use `FrameError` + `FrameResult<T>` from `packages/core/src/error.rs`
+- **State management:** iced Elm architecture (Message enum, update fn, view fn)
+- **Capture flow:** `packages/core/src/capture/platform.rs` provides raw frames via ScreenCaptureKit
+- **Project model:** `packages/core/src/project.rs` has Project struct for persistence
+- **UI widgets:** `packages/ui-components/src/` for reusable iced components
+
+---
+
+<!-- Task logs below - APPEND ONLY -->

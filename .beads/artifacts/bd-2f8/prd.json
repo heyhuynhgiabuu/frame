@@ -1,0 +1,247 @@
+{
+  "beadId": "bd-2f8",
+  "prdName": "phase-3-polish-effects",
+  "tasks": [
+    {
+      "id": "core-1",
+      "category": "core",
+      "description": "Create effects module structure with pipeline integration points",
+      "steps": [
+        "cargo test -p frame-core passes",
+        "Effects module compiles and exports types",
+        "EffectsPipeline trait defined with process_frame method"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/mod.rs", "packages/core/src/lib.rs"]
+      }
+    },
+    {
+      "id": "effects-1",
+      "category": "effects",
+      "description": "Track cursor position and velocity from capture stream",
+      "steps": [
+        "Cursor position available per frame",
+        "Velocity calculation is smooth (no jitter)",
+        "Unit tests for position interpolation pass"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/cursor.rs", "packages/core/src/capture/mod.rs"]
+      }
+    },
+    {
+      "id": "effects-2",
+      "category": "effects",
+      "description": "Implement smooth zoom that follows cursor activity",
+      "steps": [
+        "Click triggers zoom to 150%",
+        "Idle >2s triggers zoom out to 100%",
+        "Transitions use Bézier easing",
+        "No jitter at 60fps playback"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["effects-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/zoom.rs", "packages/core/src/effects/mod.rs"]
+      }
+    },
+    {
+      "id": "effects-3",
+      "category": "effects",
+      "description": "Capture keyboard events system-wide using CGEventTap",
+      "steps": [
+        "Modifier keys detected (Cmd, Ctrl, Alt, Shift)",
+        "Key combos captured correctly (e.g., Cmd+S)",
+        "Events timestamped for sync with video frames"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/keyboard.rs"]
+      }
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Render keyboard shortcut badges as overlay",
+      "steps": [
+        "Badges show correct key symbols",
+        "macOS symbols used (⌘, ⌥, ⇧, ⌃)",
+        "Fade out animation works (500ms after release)"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["effects-3"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "packages/ui-components/src/components/keyboard_badge.rs",
+          "packages/ui-components/src/lib.rs"
+        ]
+      }
+    },
+    {
+      "id": "effects-4",
+      "category": "effects",
+      "description": "Implement background colors, gradients, and padding",
+      "steps": [
+        "Solid color backgrounds render correctly",
+        "Gradient backgrounds render",
+        "Padding insets content correctly",
+        "Corner radius clips content"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/background.rs"]
+      }
+    },
+    {
+      "id": "core-2",
+      "category": "core",
+      "description": "Define and implement .frame file format",
+      "steps": [
+        "Format versioned for migrations",
+        "Serialize/deserialize round-trips correctly",
+        "File size under 1MB for typical project (no footage)"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/project.rs", "packages/core/src/project/format.rs"]
+      }
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Create sidebar panel for effects settings",
+      "steps": [
+        "Zoom intensity slider works (0-200%)",
+        "Background color picker works",
+        "Padding slider works (0-100px)",
+        "Settings persist in project state"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["effects-2", "effects-4"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "packages/ui-components/src/components/settings_panel.rs",
+          "apps/desktop/src/ui/main.rs"
+        ]
+      }
+    },
+    {
+      "id": "integration-1",
+      "category": "integration",
+      "description": "Wire effects into the capture-to-encode pipeline",
+      "steps": [
+        "Preview shows effects in real-time",
+        "Export includes effects baked in",
+        "No frame drops at 1080p60"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["effects-2", "ui-1", "effects-4"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/app.rs", "packages/core/src/encoder.rs"]
+      }
+    },
+    {
+      "id": "persistence-1",
+      "category": "persistence",
+      "description": "Implement save and load for .frame projects",
+      "steps": [
+        "File > Save creates .frame file",
+        "File > Open loads .frame file",
+        "All settings preserved across save/load",
+        "Unsaved changes prompt works"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-2", "integration-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/app.rs", "packages/core/src/project.rs"]
+      }
+    },
+    {
+      "id": "performance-1",
+      "category": "performance",
+      "description": "Profile and optimize effects for 60fps target",
+      "steps": [
+        "cargo bench shows <5ms per frame at 1080p",
+        "No dropped frames in stress test (5 min recording)",
+        "Memory usage stable over time (no leaks)"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["integration-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/core/src/effects/mod.rs", "packages/renderer/src/lib.rs"]
+      }
+    },
+    {
+      "id": "docs-1",
+      "category": "docs",
+      "description": "Document effects API and project format",
+      "steps": [
+        "Effects API documented in docs/EFFECTS.md",
+        "Project format spec documented in docs/PROJECT_FORMAT.md",
+        "README updated with new features"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["integration-1", "persistence-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["docs/EFFECTS.md", "docs/PROJECT_FORMAT.md", "README.md"]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Effects pipeline: packages/core/src/effects/",
+      "UI components: packages/ui-components/src/components/",
+      "State management: Elm architecture in apps/desktop/src/app.rs",
+      "Error handling: FrameError + FrameResult in packages/core/src/error.rs"
+    ],
+    "keyFiles": [
+      "packages/core/src/project.rs",
+      "packages/core/src/capture/platform.rs",
+      "apps/desktop/src/app.rs"
+    ],
+    "nonGoals": [
+      "Webcam overlay",
+      "Advanced timeline editing (trim, cut, split)",
+      "AI-powered auto-zoom",
+      "Motion blur effects",
+      "Custom cursor styles"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": ["bd-3vd"],
+    "parallel": true,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 60
+  }
+}

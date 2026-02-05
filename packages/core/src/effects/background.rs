@@ -310,6 +310,7 @@ impl BackgroundCompositor {
 mod tests {
     use super::*;
     use crate::capture::PixelFormat;
+    use crate::effects::Padding;
 
     #[test]
     fn test_output_dimensions() {

@@ -256,7 +256,7 @@ impl EffectsPipeline for IntegratedPipeline {
 mod tests {
     use super::*;
     use crate::capture::PixelFormat;
-    use crate::effects::{MouseButton, ZoomConfig};
+    use crate::effects::{EasingFunction, MouseButton, ZoomConfig};
 
     fn test_frame(width: u32, height: u32) -> Frame {
         Frame {
@@ -297,7 +297,7 @@ mod tests {
             max_zoom: 1.5,
             transition_duration_ms: 100,
             idle_timeout_ms: 2000,
-            easing: crate::effects::EasingFunction::Linear,
+            easing: EasingFunction::Linear,
         };
 
         let mut pipeline = IntegratedPipeline::new(config);
