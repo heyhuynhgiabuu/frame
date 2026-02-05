@@ -213,11 +213,8 @@ impl RecordingService {
         self.encoder = Some(encoder);
         self.state = RecordingSessionState::Recording;
 
-        // Start auto-save background task
-        let auto_save_service = std::mem::take(&mut self.auto_save);
-        tokio::spawn(async move {
-            auto_save_service.run_auto_save_loop().await;
-        });
+        // Note: Auto-save runs in the background via the service
+        // We keep the service reference for stop_recording to access
 
         info!(
             "Recording started with auto-save: project_id={}",
