@@ -201,6 +201,7 @@ impl RecordingService {
             capture_cursor: self.config.capture_cursor,
             capture_audio: self.config.capture_audio,
             frame_rate: self.config.frame_rate,
+            capture_region: None, // Phase 5: Region selection will be handled via capture_area
         };
 
         {

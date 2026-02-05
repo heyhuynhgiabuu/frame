@@ -6,21 +6,29 @@ Core library: capture, encoding, auto-save, effects, timeline editing, error han
 
 ```
 src/
-├── capture/        # Screen/audio capture (ScreenCaptureKit)
-│   ├── mod.rs      # ScreenCapture trait
-│   ├── platform.rs # MacOSScreenCapture impl
-│   └── audio.rs    # Audio capture
-├── effects/        # Video effects and compositing
-│   ├── mod.rs      # Types, configs, EffectsPipeline trait
-│   ├── pipeline.rs # IntegratedPipeline (combines all effects)
-│   ├── cursor.rs   # CursorTracker (position, velocity, idle)
-│   ├── zoom.rs     # ZoomEffect (click-to-zoom, smooth transitions)
-│   ├── keyboard.rs # KeyboardCapture (event buffer, combo display)
-│   └── background.rs # BackgroundCompositor (padding, gradients)
-├── error.rs        # FrameError + recovery actions
-├── encoder.rs      # FFmpeg sidecar wrapper + EditFilter
-├── auto_save.rs    # Background persistence
-└── project.rs      # Project/Recording models (.frame format) + EditHistory
+├── capture/              # Screen/audio capture (ScreenCaptureKit)
+│   ├── mod.rs            # ScreenCapture trait
+│   ├── platform.rs       # MacOSScreenCapture impl
+│   ├── audio.rs          # Audio capture
+│   └── webcam.rs         # Webcam capture (nokhwa)
+├── effects/              # Video effects and compositing
+│   ├── mod.rs            # Types, configs, EffectsPipeline trait
+│   ├── pipeline.rs       # IntegratedPipeline (combines all effects)
+│   ├── cursor.rs         # CursorTracker (position, velocity, idle)
+│   ├── zoom.rs           # ZoomEffect (click-to-zoom, smooth transitions)
+│   ├── keyboard.rs       # KeyboardCapture (event buffer, combo display)
+│   ├── background.rs     # BackgroundCompositor (padding, gradients)
+│   ├── aspect_ratio.rs   # Aspect ratio calculations
+│   ├── shadow.rs         # Shadow effect
+│   ├── inset.rs          # Inset/depth effect
+│   └── webcam_overlay.rs # Webcam overlay compositing
+├── encoder/              # Video encoding
+│   ├── mod.rs            # FFmpeg sidecar wrapper + EditFilter
+│   └── gif.rs            # GIF encoding (gifski)
+├── error.rs              # FrameError + recovery actions
+├── auto_save.rs          # Background persistence
+├── export_preset.rs      # Export preset system
+└── project.rs            # Project/Recording models (.frame format) + EditHistory
 ```
 
 ## Effects System
@@ -104,6 +112,83 @@ for frame in frames {
     }
     // Frame excluded if None (trimmed or cut)
 }
+```
+
+## Phase 5 Features
+
+Webcam capture, visual effects, and export presets.
+
+### Webcam Capture
+
+```rust
+use frame_core::capture::webcam::WebcamCapture;
+
+// Initialize webcam capture
+let webcam = WebcamCapture::new()?;
+
+// Start webcam capture stream
+webcam.start()?;
+
+// Get current frame (composited with screen)
+let frame = webcam.capture_frame()?;
+
+// Configure webcam overlay position
+let overlay = WebcamOverlay {
+    position: OverlayPosition::BottomRight,
+    size: WebcamSize::Medium,
+    border_radius: 8.0,
+};
+```
+
+### Visual Effects
+
+```rust
+use frame_core::effects::{ShadowEffect, InsetEffect, AspectRatio};
+
+// Shadow effect
+let shadow = ShadowEffect::new(ShadowConfig {
+    blur_radius: 12.0,
+    offset: (4.0, 4.0),
+    color: Color::new(0.0, 0.0, 0.0, 0.3),
+});
+
+// Inset/depth effect
+let inset = InsetEffect::new(InsetConfig {
+    padding: 20.0,
+    corner_radius: 12.0,
+    background: BackgroundStyle::Gradient { /* ... */ },
+});
+
+// Aspect ratio control
+let aspect = AspectRatio::new(16, 9);
+let constrained = aspect.apply(frame);
+```
+
+### Export Presets
+
+```rust
+use frame_core::export_preset::{ExportPreset, ExportFormat, Quality};
+
+// Predefined presets
+let gif_preset = ExportPreset::gif(GifConfig {
+    fps: 30,
+    max_colors: 128,
+    dither: true,
+});
+
+let mp4_preset = ExportPreset::mp4(VideoConfig {
+    resolution: (1920, 1080),
+    fps: 60,
+    quality: Quality::High,
+    codec: VideoCodec::H264,
+});
+
+// Custom preset
+let custom = ExportPreset::builder()
+    .format(ExportFormat::WebM)
+    .resolution(2560, 1440)
+    .fps(60)
+    .build()?;
 ```
 
 ## Project Format

@@ -34,11 +34,19 @@ ffmpeg-next = { workspace = true, optional = true }
 ffmpeg-sidecar = { workspace = true, optional = true }
 hound = { workspace = true, optional = true }
 
+# GIF encoding
+imgref = { version = "1.10", optional = true }
+rgb = { version = "0.8", optional = true }
+gifski = { version = "1.12", optional = true }
+
 # Platform-specific screen capture
 [target.'cfg(target_os = "macos")'.dependencies]
 screencapturekit = { workspace = true, optional = true }
 core-graphics = { workspace = true, optional = true }
 core-foundation = { workspace = true, optional = true }
+
+# Webcam capture (optional)
+nokhwa = { version = "0.10", features = ["input-avfoundation"], optional = true }
 
 # Audio
 cpal = { workspace = true, optional = true }
@@ -47,8 +55,10 @@ rubato = { workspace = true, optional = true }
 [features]
 default = ["capture"]
 capture = ["screencapturekit", "core-graphics", "core-foundation", "cpal", "rubato"]
+webcam = ["nokhwa"]
 encoding = ["ffmpeg-sidecar", "hound"]
 encoding-libav = ["ffmpeg-next"]
+gif = ["gifski", "imgref", "rgb"]
 pro = []
 
 [dev-dependencies]

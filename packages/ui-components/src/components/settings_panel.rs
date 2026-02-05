@@ -3,8 +3,9 @@
 //! Provides UI for configuring zoom, keyboard display, and background effects.
 
 use frame_core::effects::{
+    inset::{InsetConfig, InsetStyle},
     BackgroundStyle, BadgePosition as CoreBadgePosition, Color as CoreColor, EasingFunction,
-    EffectsConfig, Padding,
+    EffectsConfig, KeyboardConfig, Padding, ShadowConfig, ZoomConfig,
 };
 use iced::widget::{checkbox, column, container, pick_list, row, slider, text, Space};
 use iced::{Alignment, Element, Length};
@@ -18,17 +19,35 @@ pub enum SettingsMessage {
     ZoomTransitionChanged(u32),
     ZoomIdleTimeoutChanged(u32),
     ZoomEasingChanged(EasingOption),
+    ZoomResetToDefaults,
 
     // Keyboard settings
     KeyboardEnabledChanged(bool),
     KeyboardPositionChanged(PositionOption),
     KeyboardFadeChanged(u32),
     KeyboardFontSizeChanged(f32),
+    KeyboardResetToDefaults,
 
     // Background settings
     BackgroundStyleChanged(BackgroundOption),
     BackgroundPaddingChanged(f32),
     BackgroundCornerRadiusChanged(f32),
+    BackgroundResetToDefaults,
+
+    // Shadow settings
+    ShadowEnabledChanged(bool),
+    ShadowOffsetXChanged(i32),
+    ShadowOffsetYChanged(i32),
+    ShadowBlurRadiusChanged(f32),
+    ShadowColorChanged(ShadowColorOption),
+    ShadowOpacityChanged(f32),
+    ShadowResetToDefaults,
+
+    // Inset settings
+    InsetEnabledChanged(bool),
+    InsetIntensityChanged(f32),
+    InsetStyleChanged(InsetStyleOption),
+    InsetResetToDefaults,
 }
 
 /// Easing options for pick list
@@ -153,6 +172,88 @@ impl From<&BackgroundStyle> for BackgroundOption {
     }
 }
 
+/// Shadow color preset options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ShadowColorOption {
+    #[default]
+    Black,
+    Gray,
+    DarkGray,
+}
+
+impl std::fmt::Display for ShadowColorOption {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ShadowColorOption::Black => write!(f, "Black"),
+            ShadowColorOption::Gray => write!(f, "Gray"),
+            ShadowColorOption::DarkGray => write!(f, "Dark Gray"),
+        }
+    }
+}
+
+impl From<CoreColor> for ShadowColorOption {
+    fn from(color: CoreColor) -> Self {
+        // Approximate matching based on RGB values
+        let r = (color.r * 255.0) as u8;
+        let g = (color.g * 255.0) as u8;
+        let b = (color.b * 255.0) as u8;
+
+        if r < 30 && g < 30 && b < 30 {
+            ShadowColorOption::Black
+        } else if r < 80 && g < 80 && b < 80 {
+            ShadowColorOption::DarkGray
+        } else {
+            ShadowColorOption::Gray
+        }
+    }
+}
+
+impl From<ShadowColorOption> for CoreColor {
+    fn from(option: ShadowColorOption) -> Self {
+        match option {
+            ShadowColorOption::Black => CoreColor::BLACK,
+            ShadowColorOption::Gray => CoreColor::rgba_u8(128, 128, 128, 255),
+            ShadowColorOption::DarkGray => CoreColor::rgba_u8(64, 64, 64, 255),
+        }
+    }
+}
+
+/// Inset style options for pick list
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum InsetStyleOption {
+    Light,
+    #[default]
+    Dark,
+}
+
+impl std::fmt::Display for InsetStyleOption {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InsetStyleOption::Light => write!(f, "Light"),
+            InsetStyleOption::Dark => write!(f, "Dark"),
+        }
+    }
+}
+
+impl From<InsetStyle> for InsetStyleOption {
+    fn from(style: InsetStyle) -> Self {
+        match style {
+            InsetStyle::Light => InsetStyleOption::Light,
+            InsetStyle::Dark => InsetStyleOption::Dark,
+            InsetStyle::Custom(_) => InsetStyleOption::Dark, // Default fallback
+        }
+    }
+}
+
+impl From<InsetStyleOption> for InsetStyle {
+    fn from(option: InsetStyleOption) -> Self {
+        match option {
+            InsetStyleOption::Light => InsetStyle::Light,
+            InsetStyleOption::Dark => InsetStyle::Dark,
+        }
+    }
+}
+
 /// Settings panel widget
 pub struct SettingsPanel {
     config: EffectsConfig,
@@ -241,6 +342,56 @@ impl SettingsPanel {
             SettingsMessage::BackgroundCornerRadiusChanged(radius) => {
                 self.config.background.corner_radius = radius;
             }
+            SettingsMessage::BackgroundResetToDefaults => {
+                self.config.background = frame_core::effects::Background::default();
+            }
+
+            // Zoom reset
+            SettingsMessage::ZoomResetToDefaults => {
+                self.config.zoom = ZoomConfig::default();
+            }
+
+            // Keyboard reset
+            SettingsMessage::KeyboardResetToDefaults => {
+                self.config.keyboard = KeyboardConfig::default();
+            }
+
+            // Shadow settings
+            SettingsMessage::ShadowEnabledChanged(enabled) => {
+                self.config.shadow.enabled = enabled;
+            }
+            SettingsMessage::ShadowOffsetXChanged(offset) => {
+                self.config.shadow.offset_x = offset;
+            }
+            SettingsMessage::ShadowOffsetYChanged(offset) => {
+                self.config.shadow.offset_y = offset;
+            }
+            SettingsMessage::ShadowBlurRadiusChanged(radius) => {
+                self.config.shadow.blur_radius = radius;
+            }
+            SettingsMessage::ShadowColorChanged(color) => {
+                self.config.shadow.color = color.into();
+            }
+            SettingsMessage::ShadowOpacityChanged(opacity) => {
+                self.config.shadow.opacity = opacity;
+            }
+            SettingsMessage::ShadowResetToDefaults => {
+                self.config.shadow = ShadowConfig::default();
+            }
+
+            // Inset settings
+            SettingsMessage::InsetEnabledChanged(enabled) => {
+                self.config.inset.enabled = enabled;
+            }
+            SettingsMessage::InsetIntensityChanged(intensity) => {
+                self.config.inset.intensity = intensity;
+            }
+            SettingsMessage::InsetStyleChanged(style) => {
+                self.config.inset.style = style.into();
+            }
+            SettingsMessage::InsetResetToDefaults => {
+                self.config.inset = InsetConfig::default();
+            }
         }
     }
 
@@ -259,6 +410,12 @@ impl SettingsPanel {
         // Background section
         let background_section = self.background_section();
 
+        // Shadow section
+        let shadow_section = self.shadow_section();
+
+        // Inset section
+        let inset_section = self.inset_section();
+
         let content = column![
             title,
             Space::with_height(20),
@@ -267,6 +424,10 @@ impl SettingsPanel {
             keyboard_section,
             Space::with_height(20),
             background_section,
+            Space::with_height(20),
+            shadow_section,
+            Space::with_height(20),
+            inset_section,
         ]
         .spacing(10)
         .padding(20)
@@ -350,6 +511,9 @@ impl SettingsPanel {
         let easing_row =
             row![easing_label, Space::with_width(10), easing].align_items(Alignment::Center);
 
+        let reset_button = iced::widget::button("Reset to Defaults")
+            .on_press(SettingsMessage::ZoomResetToDefaults);
+
         column![
             header,
             Space::with_height(10),
@@ -362,6 +526,8 @@ impl SettingsPanel {
             idle_label,
             idle,
             easing_row,
+            Space::with_height(10),
+            reset_button,
         ]
         .spacing(5)
         .into()
@@ -426,6 +592,9 @@ impl SettingsPanel {
         })
         .step(2.0);
 
+        let reset_button = iced::widget::button("Reset to Defaults")
+            .on_press(SettingsMessage::KeyboardResetToDefaults);
+
         column![
             header,
             Space::with_height(10),
@@ -436,6 +605,8 @@ impl SettingsPanel {
             fade,
             font_label,
             font,
+            Space::with_height(10),
+            reset_button,
         ]
         .spacing(5)
         .into()
@@ -494,6 +665,9 @@ impl SettingsPanel {
         })
         .step(2.0);
 
+        let reset_button = iced::widget::button("Reset to Defaults")
+            .on_press(SettingsMessage::BackgroundResetToDefaults);
+
         column![
             header,
             Space::with_height(10),
@@ -502,6 +676,163 @@ impl SettingsPanel {
             padding,
             radius_label,
             radius,
+            Space::with_height(10),
+            reset_button,
+        ]
+        .spacing(5)
+        .into()
+    }
+
+    fn shadow_section(&self) -> Element<'_, SettingsMessage> {
+        let header = text("Shadow Effect")
+            .size(18)
+            .style(iced::theme::Text::Color(iced::Color::from_rgb(
+                0.8, 0.8, 0.8,
+            )));
+
+        let enabled = checkbox("Enable shadow", self.config.shadow.enabled)
+            .on_toggle(SettingsMessage::ShadowEnabledChanged);
+
+        let offset_x_label = text(format!("Offset X: {}px", self.config.shadow.offset_x))
+            .size(14)
+            .style(iced::theme::Text::Color(iced::Color::from_rgb(
+                0.7, 0.7, 0.7,
+            )));
+        let offset_x = slider(-20.0..=20.0, self.config.shadow.offset_x as f32, |v| {
+            SettingsMessage::ShadowOffsetXChanged(v as i32)
+        })
+        .step(1.0);
+
+        let offset_y_label = text(format!("Offset Y: {}px", self.config.shadow.offset_y))
+            .size(14)
+            .style(iced::theme::Text::Color(iced::Color::from_rgb(
+                0.7, 0.7, 0.7,
+            )));
+        let offset_y = slider(-20.0..=20.0, self.config.shadow.offset_y as f32, |v| {
+            SettingsMessage::ShadowOffsetYChanged(v as i32)
+        })
+        .step(1.0);
+
+        let blur_label = text(format!(
+            "Blur radius: {:.0}px",
+            self.config.shadow.blur_radius
+        ))
+        .size(14)
+        .style(iced::theme::Text::Color(iced::Color::from_rgb(
+            0.7, 0.7, 0.7,
+        )));
+        let blur = slider(0.0..=20.0, self.config.shadow.blur_radius, |v| {
+            SettingsMessage::ShadowBlurRadiusChanged(v)
+        })
+        .step(1.0);
+
+        let color_label =
+            text("Color:")
+                .size(14)
+                .style(iced::theme::Text::Color(iced::Color::from_rgb(
+                    0.7, 0.7, 0.7,
+                )));
+        let color_options = vec![
+            ShadowColorOption::Black,
+            ShadowColorOption::Gray,
+            ShadowColorOption::DarkGray,
+        ];
+        let color = pick_list(
+            color_options,
+            Some(ShadowColorOption::from(self.config.shadow.color)),
+            SettingsMessage::ShadowColorChanged,
+        );
+        let color_row =
+            row![color_label, Space::with_width(10), color].align_items(Alignment::Center);
+
+        let opacity_label = text(format!(
+            "Opacity: {:.0}%",
+            self.config.shadow.opacity * 100.0
+        ))
+        .size(14)
+        .style(iced::theme::Text::Color(iced::Color::from_rgb(
+            0.7, 0.7, 0.7,
+        )));
+        let opacity = slider(0.0..=1.0, self.config.shadow.opacity, |v| {
+            SettingsMessage::ShadowOpacityChanged(v)
+        })
+        .step(0.05);
+
+        let reset_button = iced::widget::button("Reset to Defaults")
+            .on_press(SettingsMessage::ShadowResetToDefaults);
+
+        column![
+            header,
+            Space::with_height(10),
+            enabled,
+            Space::with_height(10),
+            offset_x_label,
+            offset_x,
+            offset_y_label,
+            offset_y,
+            blur_label,
+            blur,
+            color_row,
+            opacity_label,
+            opacity,
+            Space::with_height(10),
+            reset_button,
+        ]
+        .spacing(5)
+        .into()
+    }
+
+    fn inset_section(&self) -> Element<'_, SettingsMessage> {
+        let header = text("Inset Effect")
+            .size(18)
+            .style(iced::theme::Text::Color(iced::Color::from_rgb(
+                0.8, 0.8, 0.8,
+            )));
+
+        let enabled = checkbox("Enable inset", self.config.inset.enabled)
+            .on_toggle(SettingsMessage::InsetEnabledChanged);
+
+        let intensity_label = text(format!(
+            "Intensity: {:.0}%",
+            self.config.inset.intensity * 100.0
+        ))
+        .size(14)
+        .style(iced::theme::Text::Color(iced::Color::from_rgb(
+            0.7, 0.7, 0.7,
+        )));
+        let intensity = slider(0.0..=1.0, self.config.inset.intensity, |v| {
+            SettingsMessage::InsetIntensityChanged(v)
+        })
+        .step(0.05);
+
+        let style_label =
+            text("Style:")
+                .size(14)
+                .style(iced::theme::Text::Color(iced::Color::from_rgb(
+                    0.7, 0.7, 0.7,
+                )));
+        let style_options = vec![InsetStyleOption::Light, InsetStyleOption::Dark];
+        let style = pick_list(
+            style_options,
+            Some(InsetStyleOption::from(self.config.inset.style)),
+            SettingsMessage::InsetStyleChanged,
+        );
+        let style_row =
+            row![style_label, Space::with_width(10), style].align_items(Alignment::Center);
+
+        let reset_button = iced::widget::button("Reset to Defaults")
+            .on_press(SettingsMessage::InsetResetToDefaults);
+
+        column![
+            header,
+            Space::with_height(10),
+            enabled,
+            Space::with_height(10),
+            intensity_label,
+            intensity,
+            style_row,
+            Space::with_height(10),
+            reset_button,
         ]
         .spacing(5)
         .into()
