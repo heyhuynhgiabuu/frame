@@ -9,5 +9,5 @@ rust-version.workspace = true
 description = "Reusable UI components for Frame"
 
 [dependencies]
-iced = { workspace = true }
+iced = { workspace = true, features = ["canvas"] }
 iced_aw = { workspace = true }

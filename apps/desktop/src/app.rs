@@ -3,6 +3,7 @@
 use crate::recording::{RecordingConfig, RecordingService};
 use crate::ui::main_view;
 use frame_core::capture::CaptureArea;
+use frame_ui::timeline::Timeline;
 use iced::{executor, time, Application, Command, Element, Subscription, Theme};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -16,6 +17,7 @@ pub struct FrameApp {
     pub frame_count: u64,
     pub start_time: Option<Instant>,
     pub permissions: Permissions,
+    pub timeline: Option<Timeline>,
 }
 
 /// Permission states
@@ -80,6 +82,9 @@ pub enum Message {
         capture_area: CaptureArea,
         capture_audio: bool,
     },
+
+    // Timeline
+    TimelinePositionChanged(Duration),
 }
 
 impl Application for FrameApp {
@@ -100,6 +105,7 @@ impl Application for FrameApp {
                 frame_count: 0,
                 start_time: None,
                 permissions: Permissions::default(),
+                timeline: None,
             },
             Command::perform(async {}, |_| Message::CheckPermissions),
         )
@@ -225,6 +231,16 @@ impl Application for FrameApp {
             }
             Message::RecordingStopped { project_id, path } => {
                 info!("Recording stopped, project: {} at {:?}", project_id, path);
+                // Create timeline for the recording
+                let mut timeline = Timeline::new(Duration::from_secs(30)); // TODO: Get actual duration
+                                                                           // Add a clip representing the full recording
+                timeline.add_clip(frame_ui::timeline::Clip {
+                    start: Duration::ZERO,
+                    end: Duration::from_secs(30),
+                    color: iced::Color::from_rgb(0.3, 0.6, 1.0),
+                    label: Some("Recording".to_string()),
+                });
+                self.timeline = Some(timeline);
                 self.state = AppState::Previewing { project_id, path };
                 self.start_time = None;
                 Command::none()
@@ -279,6 +295,14 @@ impl Application for FrameApp {
             } => {
                 self.recording_config.capture_area = capture_area;
                 self.recording_config.capture_audio = capture_audio;
+                Command::none()
+            }
+
+            // Timeline
+            Message::TimelinePositionChanged(position) => {
+                if let Some(timeline) = &mut self.timeline {
+                    timeline.set_position(position);
+                }
                 Command::none()
             }
         }

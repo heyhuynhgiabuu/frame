@@ -1,6 +1,7 @@
 //! Main UI views for different app states
 
 use crate::app::{AppState, FrameApp, Message};
+use frame_ui::timeline::Timeline;
 use iced::{
     widget::{button, column, container, progress_bar, row, text, Space},
     Alignment, Element, Length,
@@ -18,7 +19,7 @@ pub fn main_view(app: &FrameApp) -> Element<Message> {
             let frame_count = app.frame_count;
             recording_view(elapsed, frame_count)
         }
-        AppState::Previewing { project_id, .. } => preview_view(&project_id),
+        AppState::Previewing { project_id, .. } => preview_view(&project_id, app.timeline.as_ref()),
         AppState::Exporting {
             project_id,
             progress,
@@ -182,7 +183,7 @@ fn recording_view(
     .into()
 }
 
-fn preview_view(project_id: &str) -> Element<'static, Message> {
+fn preview_view<'a>(project_id: &'a str, timeline: Option<&'a Timeline>) -> Element<'a, Message> {
     let title = text("Recording Complete")
         .size(32)
         .style(iced::theme::Text::Color(iced::Color::WHITE));
@@ -207,10 +208,24 @@ fn preview_view(project_id: &str) -> Element<'static, Message> {
     ]
     .spacing(8);
 
-    column![title, info, Space::with_height(30), actions,]
+    // Build main content
+    let mut content = column![title, info, Space::with_height(20), actions,]
         .spacing(12)
-        .align_items(Alignment::Center)
-        .into()
+        .align_items(Alignment::Center);
+
+    // Add timeline if available
+    if let Some(timeline) = timeline {
+        let timeline_widget = timeline.view().map(|msg| match msg {
+            frame_ui::timeline::TimelineMessage::PositionChanged(pos) => {
+                Message::TimelinePositionChanged(pos)
+            }
+            _ => Message::TimelinePositionChanged(timeline.position()),
+        });
+        content = content.push(Space::with_height(20));
+        content = content.push(timeline_widget);
+    }
+
+    content.into()
 }
 
 fn exporting_view(project_id: &str, progress: f32) -> Element<'static, Message> {
