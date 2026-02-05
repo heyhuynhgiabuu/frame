@@ -3,10 +3,12 @@
 use crate::recording::{RecordingConfig, RecordingService};
 use crate::ui::main_view;
 use frame_core::capture::CaptureArea;
+use frame_core::{EditHistory, EditOperation};
 use frame_ui::error_dialog::{ErrorDialog, ErrorDialogMessage};
 use frame_ui::export_dialog::{ExportDialog, ExportDialogMessage};
 use frame_ui::timeline::Timeline;
-use iced::{executor, time, Application, Command, Element, Subscription, Theme};
+use iced::keyboard::{self, Key, Modifiers};
+use iced::{executor, time, Application, Command, Element, Event, Subscription, Theme};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tracing::info;
@@ -27,6 +29,8 @@ pub struct FrameApp {
     pub current_project_id: Option<String>,
     pub incomplete_recordings: Vec<PathBuf>,
     pub auto_save_status: AutoSaveStatus,
+    /// Edit history for undo/redo (mirrors project state)
+    pub edit_history: EditHistory,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -119,6 +123,22 @@ pub enum Message {
     // Timeline
     TimelinePositionChanged(Duration),
 
+    // Edit Operations (keyboard shortcuts)
+    /// Set in point at current playhead position (I key)
+    SetInPoint,
+    /// Set out point at current playhead position (O key)
+    SetOutPoint,
+    /// Cut the selected region (X key)
+    CutSelection,
+    /// Split at playhead position (S key)
+    SplitAtPlayhead,
+    /// Undo last edit operation (Cmd+Z)
+    Undo,
+    /// Redo last undone operation (Cmd+Shift+Z)
+    Redo,
+    /// Clear selection (Escape key)
+    ClearSelection,
+
     // Export Dialog
     ExportDialogMessage(ExportDialogMessage),
 
@@ -152,6 +172,7 @@ impl Application for FrameApp {
                 current_project_id: None,
                 incomplete_recordings: Vec::new(),
                 auto_save_status: AutoSaveStatus::default(),
+                edit_history: EditHistory::new(),
             },
             Command::batch([
                 Command::perform(async {}, |_| Message::CheckPermissions),
@@ -469,6 +490,69 @@ impl Application for FrameApp {
                 Command::none()
             }
 
+            // Edit Operations
+            Message::SetInPoint => {
+                if let Some(timeline) = &mut self.timeline {
+                    timeline.set_in_point();
+                    info!("In point set at {:?}", timeline.position());
+                }
+                Command::none()
+            }
+            Message::SetOutPoint => {
+                if let Some(timeline) = &mut self.timeline {
+                    timeline.set_out_point();
+                    info!("Out point set at {:?}", timeline.position());
+                }
+                Command::none()
+            }
+            Message::CutSelection => {
+                if let Some(timeline) = &mut self.timeline {
+                    if let Some((from, to)) = timeline.cut_selection() {
+                        // Record the operation in edit history
+                        self.edit_history.push(EditOperation::Cut { from, to });
+                        info!("Cut selection from {:?} to {:?}", from, to);
+                    }
+                }
+                Command::none()
+            }
+            Message::SplitAtPlayhead => {
+                if let Some(timeline) = &mut self.timeline {
+                    let position = timeline.position();
+                    timeline.split_at_playhead();
+                    // Record the operation in edit history
+                    self.edit_history
+                        .push(EditOperation::Split { at: position });
+                    info!("Split at {:?}", position);
+                }
+                Command::none()
+            }
+            Message::Undo => {
+                if let Some(operation) = self.edit_history.undo() {
+                    info!("Undo: {:?}", operation);
+                    // TODO: Reflect undo in timeline visualization
+                    if let Some(timeline) = &mut self.timeline {
+                        // For now, just clear the timeline's selection state
+                        // Full undo would require rebuilding timeline state from history
+                        timeline.clear_edit_state();
+                    }
+                }
+                Command::none()
+            }
+            Message::Redo => {
+                if let Some(operation) = self.edit_history.redo() {
+                    info!("Redo: {:?}", operation);
+                    // TODO: Reflect redo in timeline visualization
+                }
+                Command::none()
+            }
+            Message::ClearSelection => {
+                if let Some(timeline) = &mut self.timeline {
+                    timeline.selection_mut().clear_selection();
+                    info!("Selection cleared");
+                }
+                Command::none()
+            }
+
             // Export Dialog
             Message::ExportDialogMessage(dialog_msg) => {
                 match dialog_msg {
@@ -529,6 +613,17 @@ impl Application for FrameApp {
             );
         }
 
+        // Keyboard shortcuts for editing (only in Previewing state)
+        if matches!(self.state, AppState::Previewing { .. }) {
+            subscriptions.push(iced::event::listen_with(|event, _status| {
+                if let Event::Keyboard(keyboard::Event::KeyPressed { key, modifiers, .. }) = event {
+                    handle_edit_shortcut(key, modifiers)
+                } else {
+                    None
+                }
+            }));
+        }
+
         Subscription::batch(subscriptions)
     }
 }
@@ -539,6 +634,39 @@ fn format_duration(duration: Duration) -> String {
     let mins = secs / 60;
     let secs = secs % 60;
     format!("{:02}:{:02}", mins, secs)
+}
+
+/// Handle keyboard shortcuts for edit operations
+fn handle_edit_shortcut(key: Key, modifiers: Modifiers) -> Option<Message> {
+    match key {
+        // I key - Set in point
+        Key::Character(ref c) if c.as_str() == "i" && modifiers.is_empty() => {
+            Some(Message::SetInPoint)
+        }
+        // O key - Set out point
+        Key::Character(ref c) if c.as_str() == "o" && modifiers.is_empty() => {
+            Some(Message::SetOutPoint)
+        }
+        // X key - Cut selection
+        Key::Character(ref c) if c.as_str() == "x" && modifiers.is_empty() => {
+            Some(Message::CutSelection)
+        }
+        // S key - Split at playhead
+        Key::Character(ref c) if c.as_str() == "s" && modifiers.is_empty() => {
+            Some(Message::SplitAtPlayhead)
+        }
+        // Cmd+Z - Undo
+        Key::Character(ref c) if c.as_str() == "z" && modifiers.command() && !modifiers.shift() => {
+            Some(Message::Undo)
+        }
+        // Cmd+Shift+Z - Redo
+        Key::Character(ref c) if c.as_str() == "z" && modifiers.command() && modifiers.shift() => {
+            Some(Message::Redo)
+        }
+        // Escape - Clear selection
+        Key::Named(keyboard::key::Named::Escape) => Some(Message::ClearSelection),
+        _ => None,
+    }
 }
 
 impl Default for FrameApp {

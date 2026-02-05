@@ -1,12 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 use uuid::Uuid;
 
 use crate::effects::EffectsConfig;
 use crate::FrameResult;
 
-/// Current project format version
-pub const PROJECT_FORMAT_VERSION: u32 = 1;
+/// Current project format version (bumped for edit operations support)
+pub const PROJECT_FORMAT_VERSION: u32 = 2;
 
 /// Minimum supported version for migration
 pub const MIN_SUPPORTED_VERSION: u32 = 1;
@@ -33,6 +34,9 @@ pub struct Project {
     /// Current recording state for auto-save tracking
     #[serde(default)]
     pub recording_state: RecordingState,
+    /// Edit history for non-destructive timeline editing
+    #[serde(default)]
+    pub edit_history: EditHistory,
 }
 
 fn default_version() -> u32 {
@@ -50,6 +54,262 @@ pub enum RecordingState {
     Error,
 }
 
+/// Represents a non-destructive edit operation on the timeline
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum EditOperation {
+    /// Remove content from the beginning and/or end of a recording
+    /// - start: new start time (content before this is trimmed)
+    /// - end: new end time (content after this is trimmed)
+    Trim {
+        #[serde(with = "duration_millis")]
+        start: Duration,
+        #[serde(with = "duration_millis")]
+        end: Duration,
+    },
+    /// Remove a section from the middle of a recording
+    /// Content after `to` is shifted earlier by (to - from)
+    Cut {
+        #[serde(with = "duration_millis")]
+        from: Duration,
+        #[serde(with = "duration_millis")]
+        to: Duration,
+    },
+    /// Divide a clip into multiple segments at a point
+    Split {
+        #[serde(with = "duration_millis")]
+        at: Duration,
+    },
+}
+
+/// Serialization module for Duration as milliseconds (u64)
+mod duration_millis {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::time::Duration;
+
+    pub fn serialize<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        duration.as_millis().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let millis = u64::deserialize(deserializer)?;
+        Ok(Duration::from_millis(millis))
+    }
+}
+
+/// Maximum number of operations in undo history to prevent unbounded memory growth
+pub const MAX_UNDO_HISTORY: usize = 50;
+
+/// Edit history with undo/redo support
+///
+/// Operations are stored in order of application. `current_index` points to
+/// the position after the last applied operation. Undo decrements the index,
+/// redo increments it.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EditHistory {
+    /// All operations (applied and undone)
+    operations: Vec<EditOperation>,
+    /// Index pointing after the last applied operation
+    /// - 0 means no operations applied
+    /// - operations.len() means all operations applied
+    current_index: usize,
+}
+
+impl EditHistory {
+    /// Create a new empty edit history
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Push a new operation, clearing any undone operations and enforcing max history
+    pub fn push(&mut self, operation: EditOperation) {
+        // Clear any undone operations (redo history)
+        self.operations.truncate(self.current_index);
+
+        // Add the new operation
+        self.operations.push(operation);
+        self.current_index = self.operations.len();
+
+        // Enforce max history limit (remove oldest operations)
+        if self.operations.len() > MAX_UNDO_HISTORY {
+            let excess = self.operations.len() - MAX_UNDO_HISTORY;
+            self.operations.drain(..excess);
+            self.current_index = self.operations.len();
+        }
+    }
+
+    /// Undo the last operation, returning it if successful
+    pub fn undo(&mut self) -> Option<&EditOperation> {
+        if self.current_index > 0 {
+            self.current_index -= 1;
+            Some(&self.operations[self.current_index])
+        } else {
+            None
+        }
+    }
+
+    /// Redo the last undone operation, returning it if successful
+    pub fn redo(&mut self) -> Option<&EditOperation> {
+        if self.current_index < self.operations.len() {
+            let op = &self.operations[self.current_index];
+            self.current_index += 1;
+            Some(op)
+        } else {
+            None
+        }
+    }
+
+    /// Check if undo is available
+    pub fn can_undo(&self) -> bool {
+        self.current_index > 0
+    }
+
+    /// Check if redo is available
+    pub fn can_redo(&self) -> bool {
+        self.current_index < self.operations.len()
+    }
+
+    /// Get all currently applied operations (excludes undone operations)
+    pub fn applied_operations(&self) -> &[EditOperation] {
+        &self.operations[..self.current_index]
+    }
+
+    /// Get the number of applied operations
+    pub fn len(&self) -> usize {
+        self.current_index
+    }
+
+    /// Check if history is empty (no applied operations)
+    pub fn is_empty(&self) -> bool {
+        self.current_index == 0
+    }
+
+    /// Clear all history
+    pub fn clear(&mut self) {
+        self.operations.clear();
+        self.current_index = 0;
+    }
+
+    /// Calculate the effective duration after applying all edit operations
+    ///
+    /// This is used for timeline display and export to determine the final length.
+    pub fn effective_duration(&self, original_duration: Duration) -> Duration {
+        let mut duration = original_duration;
+
+        for op in self.applied_operations() {
+            match op {
+                EditOperation::Trim { start, end } => {
+                    // Trim reduces to the range [start, end]
+                    let end_clamped = (*end).min(duration);
+                    let start_clamped = (*start).min(end_clamped);
+                    duration = end_clamped.saturating_sub(start_clamped);
+                }
+                EditOperation::Cut { from, to } => {
+                    // Cut removes [from, to], shifting content after `to` earlier
+                    let cut_duration = to.saturating_sub(*from);
+                    duration = duration.saturating_sub(cut_duration);
+                }
+                EditOperation::Split { .. } => {
+                    // Split doesn't change duration, just creates segment boundaries
+                }
+            }
+        }
+
+        duration
+    }
+
+    /// Validate that a trim operation won't result in empty content
+    ///
+    /// Returns Ok(()) if valid, Err with reason if invalid.
+    pub fn validate_trim(
+        &self,
+        original_duration: Duration,
+        start: Duration,
+        end: Duration,
+    ) -> Result<(), &'static str> {
+        if start >= end {
+            return Err("Trim start must be before end");
+        }
+
+        if start >= original_duration {
+            return Err("Trim start is beyond the recording duration");
+        }
+
+        // Calculate effective duration with this trim applied
+        let trim_duration = end.min(original_duration).saturating_sub(start);
+
+        // Minimum duration: 500ms
+        const MIN_DURATION: Duration = Duration::from_millis(500);
+        if trim_duration < MIN_DURATION {
+            return Err("Trim would result in a video shorter than 0.5 seconds");
+        }
+
+        Ok(())
+    }
+
+    /// Validate that a cut operation won't result in empty content
+    pub fn validate_cut(
+        &self,
+        original_duration: Duration,
+        from: Duration,
+        to: Duration,
+    ) -> Result<(), &'static str> {
+        if from >= to {
+            return Err("Cut start must be before end");
+        }
+
+        if from >= original_duration {
+            return Err("Cut start is beyond the recording duration");
+        }
+
+        // Calculate remaining duration after this cut
+        let cut_duration = to.saturating_sub(from);
+        let current_effective = self.effective_duration(original_duration);
+        let remaining = current_effective.saturating_sub(cut_duration);
+
+        // Minimum duration: 500ms
+        const MIN_DURATION: Duration = Duration::from_millis(500);
+        if remaining < MIN_DURATION {
+            return Err("Cut would result in a video shorter than 0.5 seconds");
+        }
+
+        Ok(())
+    }
+
+    /// Push a trim operation with validation
+    ///
+    /// Returns Ok(()) if applied, Err with reason if validation failed.
+    pub fn push_trim(
+        &mut self,
+        original_duration: Duration,
+        start: Duration,
+        end: Duration,
+    ) -> Result<(), &'static str> {
+        self.validate_trim(original_duration, start, end)?;
+        self.push(EditOperation::Trim { start, end });
+        Ok(())
+    }
+
+    /// Push a cut operation with validation
+    ///
+    /// Returns Ok(()) if applied, Err with reason if validation failed.
+    pub fn push_cut(
+        &mut self,
+        original_duration: Duration,
+        from: Duration,
+        to: Duration,
+    ) -> Result<(), &'static str> {
+        self.validate_cut(original_duration, from, to)?;
+        self.push(EditOperation::Cut { from, to });
+        Ok(())
+    }
+}
+
 impl Project {
     pub fn new(name: impl Into<String>) -> Self {
         let now = chrono::Utc::now();
@@ -64,6 +324,7 @@ impl Project {
             recordings: Vec::new(),
             exports: Vec::new(),
             recording_state: RecordingState::Idle,
+            edit_history: EditHistory::default(),
         }
     }
 
@@ -283,12 +544,18 @@ pub enum ExportFormat {
 
 /// Migrate project from older format versions to current
 fn migrate_project(mut project: Project, from_version: u32) -> FrameResult<Project> {
-    // Version 1 is current, no migrations needed yet
-    // Future migrations would be added here:
-    // if from_version < 2 { project = migrate_v1_to_v2(project); }
+    // v1 → v2: Add edit_history field (handled by serde default)
+    // No explicit migration needed since EditHistory::default() is used
+
+    if from_version < 2 {
+        // Ensure edit_history is properly initialized for v1 projects
+        // serde default handles this, but we can explicitly set for clarity
+        if project.edit_history.operations.is_empty() {
+            project.edit_history = EditHistory::default();
+        }
+    }
 
     project.version = PROJECT_FORMAT_VERSION;
-    let _ = from_version; // Silence unused warning until we have migrations
     Ok(project)
 }
 
@@ -304,6 +571,7 @@ mod tests {
         assert_eq!(project.name, "Test Project");
         assert_eq!(project.version, PROJECT_FORMAT_VERSION);
         assert!(project.recordings.is_empty());
+        assert!(project.edit_history.is_empty());
     }
 
     #[test]
@@ -352,5 +620,259 @@ mod tests {
         let project = Project::new("Effects Test");
         assert!(project.effects.zoom.enabled);
         assert!(project.effects.keyboard.enabled);
+    }
+
+    // Edit Operations Tests
+
+    #[test]
+    fn test_edit_operation_trim_serialization() {
+        let trim = EditOperation::Trim {
+            start: Duration::from_millis(5000),
+            end: Duration::from_millis(30000),
+        };
+
+        let json = serde_json::to_string(&trim).unwrap();
+        let loaded: EditOperation = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(trim, loaded);
+    }
+
+    #[test]
+    fn test_edit_operation_cut_serialization() {
+        let cut = EditOperation::Cut {
+            from: Duration::from_millis(10000),
+            to: Duration::from_millis(20000),
+        };
+
+        let json = serde_json::to_string(&cut).unwrap();
+        let loaded: EditOperation = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(cut, loaded);
+    }
+
+    #[test]
+    fn test_edit_operation_split_serialization() {
+        let split = EditOperation::Split {
+            at: Duration::from_millis(15000),
+        };
+
+        let json = serde_json::to_string(&split).unwrap();
+        let loaded: EditOperation = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(split, loaded);
+    }
+
+    // EditHistory Tests
+
+    #[test]
+    fn test_edit_history_push_and_undo_redo() {
+        let mut history = EditHistory::new();
+
+        // Initially empty
+        assert!(history.is_empty());
+        assert!(!history.can_undo());
+        assert!(!history.can_redo());
+
+        // Push operations
+        let op1 = EditOperation::Trim {
+            start: Duration::from_secs(0),
+            end: Duration::from_secs(30),
+        };
+        let op2 = EditOperation::Cut {
+            from: Duration::from_secs(10),
+            to: Duration::from_secs(15),
+        };
+        let op3 = EditOperation::Split {
+            at: Duration::from_secs(20),
+        };
+
+        history.push(op1.clone());
+        assert_eq!(history.len(), 1);
+        assert!(history.can_undo());
+        assert!(!history.can_redo());
+
+        history.push(op2.clone());
+        history.push(op3.clone());
+        assert_eq!(history.len(), 3);
+
+        // Undo all three
+        let undone = history.undo().cloned();
+        assert_eq!(undone, Some(op3.clone()));
+        assert_eq!(history.len(), 2);
+        assert!(history.can_redo());
+
+        let undone = history.undo().cloned();
+        assert_eq!(undone, Some(op2.clone()));
+        assert_eq!(history.len(), 1);
+
+        let undone = history.undo().cloned();
+        assert_eq!(undone, Some(op1.clone()));
+        assert_eq!(history.len(), 0);
+
+        // Can't undo further
+        assert!(!history.can_undo());
+        assert!(history.undo().is_none());
+
+        // Redo two
+        let redone = history.redo().cloned();
+        assert_eq!(redone, Some(op1.clone()));
+        assert_eq!(history.len(), 1);
+
+        let redone = history.redo().cloned();
+        assert_eq!(redone, Some(op2.clone()));
+        assert_eq!(history.len(), 2);
+
+        // State matches after undo/redo cycle
+        assert_eq!(history.applied_operations(), &[op1.clone(), op2.clone()]);
+    }
+
+    #[test]
+    fn test_edit_history_push_clears_redo() {
+        let mut history = EditHistory::new();
+
+        let op1 = EditOperation::Split {
+            at: Duration::from_secs(10),
+        };
+        let op2 = EditOperation::Split {
+            at: Duration::from_secs(20),
+        };
+        let op3 = EditOperation::Split {
+            at: Duration::from_secs(5),
+        };
+
+        history.push(op1.clone());
+        history.push(op2.clone());
+        history.undo(); // Undo op2
+
+        // Push new operation - should clear redo history
+        history.push(op3.clone());
+
+        assert_eq!(history.len(), 2);
+        assert!(!history.can_redo());
+        assert_eq!(history.applied_operations(), &[op1, op3]);
+    }
+
+    #[test]
+    fn test_edit_history_max_limit() {
+        let mut history = EditHistory::new();
+
+        // Push more than MAX_UNDO_HISTORY operations
+        for i in 0..(MAX_UNDO_HISTORY + 10) {
+            history.push(EditOperation::Split {
+                at: Duration::from_millis(i as u64 * 1000),
+            });
+        }
+
+        // Should be capped at MAX_UNDO_HISTORY
+        assert_eq!(history.len(), MAX_UNDO_HISTORY);
+        assert_eq!(history.operations.len(), MAX_UNDO_HISTORY);
+    }
+
+    #[test]
+    fn test_effective_duration_trim() {
+        let mut history = EditHistory::new();
+        let original = Duration::from_secs(60);
+
+        // Trim to 10-40 seconds = 30s duration
+        history.push(EditOperation::Trim {
+            start: Duration::from_secs(10),
+            end: Duration::from_secs(40),
+        });
+
+        assert_eq!(
+            history.effective_duration(original),
+            Duration::from_secs(30)
+        );
+    }
+
+    #[test]
+    fn test_effective_duration_cut() {
+        let mut history = EditHistory::new();
+        let original = Duration::from_secs(60);
+
+        // Cut 10-20 seconds = removes 10s
+        history.push(EditOperation::Cut {
+            from: Duration::from_secs(10),
+            to: Duration::from_secs(20),
+        });
+
+        assert_eq!(
+            history.effective_duration(original),
+            Duration::from_secs(50)
+        );
+    }
+
+    #[test]
+    fn test_effective_duration_split() {
+        let mut history = EditHistory::new();
+        let original = Duration::from_secs(60);
+
+        // Split doesn't change duration
+        history.push(EditOperation::Split {
+            at: Duration::from_secs(30),
+        });
+
+        assert_eq!(
+            history.effective_duration(original),
+            Duration::from_secs(60)
+        );
+    }
+
+    #[test]
+    fn test_effective_duration_combined() {
+        let mut history = EditHistory::new();
+        let original = Duration::from_secs(60);
+
+        // Trim to 5-50 seconds = 45s
+        history.push(EditOperation::Trim {
+            start: Duration::from_secs(5),
+            end: Duration::from_secs(50),
+        });
+
+        // Cut 10-20 from the trimmed result = removes 10s, now 35s
+        history.push(EditOperation::Cut {
+            from: Duration::from_secs(10),
+            to: Duration::from_secs(20),
+        });
+
+        // Split doesn't change duration
+        history.push(EditOperation::Split {
+            at: Duration::from_secs(15),
+        });
+
+        assert_eq!(
+            history.effective_duration(original),
+            Duration::from_secs(35)
+        );
+    }
+
+    #[test]
+    fn test_project_with_edit_history_roundtrip() {
+        let file = NamedTempFile::new().unwrap();
+        let mut project = Project::new("Edit History Test");
+
+        // Add some edit operations
+        project.edit_history.push(EditOperation::Trim {
+            start: Duration::from_secs(5),
+            end: Duration::from_secs(55),
+        });
+        project.edit_history.push(EditOperation::Cut {
+            from: Duration::from_secs(20),
+            to: Duration::from_secs(30),
+        });
+        project.edit_history.push(EditOperation::Split {
+            at: Duration::from_secs(25),
+        });
+
+        // Save and reload
+        project.save_to_file(file.path()).unwrap();
+        let loaded = Project::load_from_file(file.path()).unwrap();
+
+        // Verify edit history persisted
+        assert_eq!(loaded.edit_history.len(), 3);
+        assert_eq!(
+            loaded.edit_history.applied_operations(),
+            project.edit_history.applied_operations()
+        );
     }
 }

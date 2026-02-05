@@ -1,0 +1,243 @@
+{
+  "beadId": "bd-cdx",
+  "prdName": "phase-4-timeline-editing",
+  "tasks": [
+    {
+      "id": "core-1",
+      "category": "core",
+      "description": "Edit Operations Data Model - Core data types for representing edit operations stored in the project file.",
+      "steps": [
+        "cargo clippy -p frame-core -- -D warnings",
+        "Unit tests for EditOperation serialization/deserialization"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/project.rs", "packages/core/src/lib.rs"]
+      }
+    },
+    {
+      "id": "core-2",
+      "category": "core",
+      "description": "Edit History with Undo/Redo - EditHistory struct with push, undo, redo, and can_undo/can_redo methods.",
+      "steps": [
+        "cargo test -p frame-core edit_history",
+        "Test: push → undo → redo cycle preserves operations"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/project.rs"]
+      }
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Timeline Selection State - Add selection state to Timeline (in_point, out_point, selected_range) for marking edit regions.",
+      "steps": [
+        "cargo clippy -p frame-ui -- -D warnings",
+        "Timeline can store and display selection range"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/ui-components/src/components/timeline.rs"]
+      }
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Timeline Trim Handles - Visual handles at start/end that can be dragged to set trim points.",
+      "steps": ["Drag handles visible at clip edges", "Dragging updates trim state"],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["ui-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/ui-components/src/components/timeline.rs"]
+      }
+    },
+    {
+      "id": "ui-3",
+      "category": "ui",
+      "description": "Timeline Cut Region Visualization - Show cut regions with distinct visual treatment (grayed out, X pattern).",
+      "steps": [
+        "Cut regions render differently from active content",
+        "Multiple cuts render correctly"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["ui-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/ui-components/src/components/timeline.rs"]
+      }
+    },
+    {
+      "id": "ui-4",
+      "category": "ui",
+      "description": "Timeline Split Point Visualization - Show split points as vertical dividers between segments.",
+      "steps": [
+        "Split points visible as distinct markers",
+        "Clicking near split selects the right segment"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["ui-1"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/ui-components/src/components/timeline.rs"]
+      }
+    },
+    {
+      "id": "desktop-1",
+      "category": "desktop",
+      "description": "Keyboard Shortcuts for Editing - Wire up I (in), O (out), X (cut), S (split), Cmd+Z (undo), Cmd+Shift+Z (redo).",
+      "steps": ["All shortcuts trigger correct actions", "Shortcuts disabled when not applicable"],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-1", "ui-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/app.rs", "apps/desktop/src/ui/main.rs"]
+      }
+    },
+    {
+      "id": "core-3",
+      "category": "core",
+      "description": "Trim Operation Implementation - Apply trim to EditHistory and validate trim doesn't create empty video.",
+      "steps": ["cargo test -p frame-core trim", "Trim persists in project save/load"],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-2"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/project.rs"]
+      }
+    },
+    {
+      "id": "core-4",
+      "category": "core",
+      "description": "Cut Operation Implementation - Apply cut to EditHistory, shift subsequent content timestamps.",
+      "steps": ["cargo test -p frame-core cut", "Cut persists and loads correctly"],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-2"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/project.rs"]
+      }
+    },
+    {
+      "id": "core-5",
+      "category": "core",
+      "description": "Split Operation Implementation - Apply split to EditHistory, create segment boundaries.",
+      "steps": ["cargo test -p frame-core split", "Split creates expected segment count"],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-2"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/project.rs"]
+      }
+    },
+    {
+      "id": "core-6",
+      "category": "core",
+      "description": "Encoder Edit Support - Modify encoder to skip cut regions and respect trim boundaries during export.",
+      "steps": [
+        "Export with trim produces shorter video",
+        "Export with cut removes the cut section"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-3", "core-4"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["packages/core/src/encoder.rs"]
+      }
+    },
+    {
+      "id": "integration-1",
+      "category": "integration",
+      "description": "Edit Preview in Timeline - Timeline preview updates in real-time as edits are applied.",
+      "steps": [
+        "Make edit, see timeline update immediately",
+        "Scrub through edited timeline, playhead respects edits"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["ui-2", "ui-3", "core-3", "core-4"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["apps/desktop/src/app.rs", "packages/ui-components/src/components/timeline.rs"]
+      }
+    },
+    {
+      "id": "persistence-1",
+      "category": "persistence",
+      "description": "Project Edit Persistence - Ensure edits save/load correctly in .frame project files.",
+      "steps": [
+        "Save project with edits, close, reopen, edits intact",
+        "Version bump if needed for format change"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["core-2"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["packages/core/src/project.rs"]
+      }
+    },
+    {
+      "id": "docs-1",
+      "category": "docs",
+      "description": "Documentation - Update AGENTS.md files with edit operation patterns and usage.",
+      "steps": ["AGENTS.md includes edit operation examples", "Keyboard shortcuts documented"],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["integration-1", "core-6"],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": [
+          "packages/core/AGENTS.md",
+          "packages/ui-components/AGENTS.md",
+          "apps/desktop/AGENTS.md"
+        ]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Timeline Widget: packages/ui-components/src/components/timeline.rs",
+      "Project Model: packages/core/src/project.rs",
+      "Effects Pipeline: packages/core/src/effects/pipeline.rs"
+    ],
+    "keyFiles": [
+      "packages/ui-components/src/components/timeline.rs",
+      "packages/core/src/project.rs",
+      "packages/core/src/encoder.rs",
+      "apps/desktop/src/app.rs"
+    ],
+    "nonGoals": [
+      "Multi-track timeline",
+      "Audio waveform visualization",
+      "Transitions between clips",
+      "Speed ramping/time stretch",
+      "Copy/paste clips between projects"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": ["bd-2f8"],
+    "parallel": true,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 80
+  }
+}

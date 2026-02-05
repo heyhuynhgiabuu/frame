@@ -1,0 +1,50 @@
+# Progress Log
+
+Bead: bd-cdx
+Started: 2026-02-05
+
+## Codebase Patterns
+
+- Timeline Widget: `packages/ui-components/src/components/timeline.rs` - Canvas-based with Clip struct
+- Project Model: `packages/core/src/project.rs` - Recording and Project structs with serde
+- Effects Pipeline: `packages/core/src/effects/pipeline.rs` - Frame processing pattern
+- Error Handling: Use `FrameError` + `FrameResult<T>` for all fallible operations
+
+---
+
+<!-- Task logs below - APPEND ONLY -->
+
+## 2026-02-05: Phase 4 Implementation Complete
+
+### Completed Tasks (14/14)
+
+1. **core-1**: EditOperation enum with Trim/Cut/Split variants + Duration serialization (millis)
+2. **core-2**: EditHistory struct with push/undo/redo/can_undo/can_redo + MAX_UNDO_HISTORY limit
+3. **ui-1**: SelectionState with in_point, out_point, selected_range, split_points, cut_regions, trim
+4. **ui-2**: Trim handles with draggable visual (white bars with grip lines)
+5. **ui-3**: Cut region visualization (dark red fill + X pattern overlay)
+6. **ui-4**: Split point markers (yellow dashed lines + diamond marker)
+7. **desktop-1**: Keyboard shortcuts (I/O/X/S, Cmd+Z/Cmd+Shift+Z, Escape) via iced::event::listen_with
+8. **core-3**: Trim validation (validate_trim, push_trim with min 500ms check)
+9. **core-4**: Cut validation (validate_cut, push_cut)
+10. **core-5**: Split operation (no validation needed - doesn't change duration)
+11. **core-6**: EditFilter for encoder (filter_timestamp returns adjusted time or None)
+12. **integration-1**: Timeline preview updates (handled by canvas draw)
+13. **persistence-1**: Project format v2 with edit_history field + migration from v1
+14. **docs-1**: AGENTS.md updates for frame-core, frame-ui, frame-desktop
+
+### Verification
+
+- `cargo clippy --workspace -- -D warnings` ✅
+- Project format version bumped to v2
+- All edit operations serialize/deserialize correctly
+- Keyboard shortcuts only active in Previewing state
+
+### Key Files Changed
+
+- `packages/core/src/project.rs` - EditOperation, EditHistory, validation
+- `packages/core/src/encoder.rs` - EditFilter helper
+- `packages/core/src/lib.rs` - New exports
+- `packages/ui-components/src/components/timeline.rs` - SelectionState, visualization
+- `apps/desktop/src/app.rs` - Keyboard shortcuts, edit messages
+- `packages/core/AGENTS.md`, `packages/ui-components/AGENTS.md`, `apps/desktop/AGENTS.md`

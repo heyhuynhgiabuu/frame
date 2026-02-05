@@ -10,4 +10,7 @@ pub use error::{
     EncodingStage, ErrorContext, ErrorHandler, ErrorSeverity, FrameError, FrameResult,
     IntoFrameError, PermissionAction, RecoveryAction, ResourceType,
 };
-pub use project::{Export, ExportFormat, Project, ProjectSettings, Recording, Resolution, RecordingState};
+pub use project::{
+    EditHistory, EditOperation, Export, ExportFormat, Project, ProjectSettings, Recording,
+    RecordingState, Resolution, MAX_UNDO_HISTORY,
+};

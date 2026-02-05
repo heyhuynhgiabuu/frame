@@ -208,6 +208,7 @@ impl ZoomEffect {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::effects::EasingFunction;
 
     fn default_config() -> ZoomConfig {
         ZoomConfig {

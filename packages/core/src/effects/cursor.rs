@@ -167,6 +167,7 @@ impl CursorTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::effects::MouseButton;
 
     #[test]
     fn test_position_tracking() {

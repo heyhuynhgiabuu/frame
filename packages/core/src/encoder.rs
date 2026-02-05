@@ -2,6 +2,7 @@
 //!
 //! Provides H.264/H.265 encoding via bundled ffmpeg binary
 
+use crate::EditHistory;
 use std::time::Duration;
 
 /// Video frame for encoding (standalone type, doesn't require capture feature)
@@ -26,6 +27,68 @@ pub struct AudioSamples {
     pub sample_rate: u32,
     /// Number of channels
     pub channels: u16,
+}
+
+/// Helper to check if a timestamp should be included based on edit operations
+pub struct EditFilter<'a> {
+    edit_history: &'a EditHistory,
+    original_duration: Duration,
+}
+
+impl<'a> EditFilter<'a> {
+    /// Create a new edit filter
+    pub fn new(edit_history: &'a EditHistory, original_duration: Duration) -> Self {
+        Self {
+            edit_history,
+            original_duration,
+        }
+    }
+
+    /// Check if a timestamp should be included in the export
+    ///
+    /// Returns `None` if the timestamp should be excluded (trimmed/cut),
+    /// or `Some(adjusted_timestamp)` if it should be included with an adjusted time.
+    pub fn filter_timestamp(&self, timestamp: Duration) -> Option<Duration> {
+        use crate::EditOperation;
+
+        let mut current_time = timestamp;
+        let mut time_offset = Duration::ZERO;
+
+        for op in self.edit_history.applied_operations() {
+            match op {
+                EditOperation::Trim { start, end } => {
+                    // If outside trim range, exclude
+                    if current_time < *start || current_time > *end {
+                        return None;
+                    }
+                    // Adjust time relative to trim start
+                    current_time = current_time.saturating_sub(*start);
+                }
+                EditOperation::Cut { from, to } => {
+                    // If inside cut range, exclude
+                    if current_time >= *from && current_time <= *to {
+                        return None;
+                    }
+                    // If after cut, shift time earlier
+                    if current_time > *to {
+                        let cut_duration = to.saturating_sub(*from);
+                        time_offset += cut_duration;
+                    }
+                }
+                EditOperation::Split { .. } => {
+                    // Splits don't affect filtering
+                }
+            }
+        }
+
+        // Apply accumulated time offset from cuts
+        Some(current_time.saturating_sub(time_offset))
+    }
+
+    /// Get the effective duration after all edits
+    pub fn effective_duration(&self) -> Duration {
+        self.edit_history.effective_duration(self.original_duration)
+    }
 }
 
 #[cfg(feature = "encoding")]
