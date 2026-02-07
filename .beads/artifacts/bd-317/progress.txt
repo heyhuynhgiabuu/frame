@@ -1,0 +1,16 @@
+# Progress Log
+
+Bead: bd-317
+Started: 2026-02-06
+
+## Codebase Patterns
+
+- NSViewRepresentable bridge for NSVisualEffectView already exists in RecordingView.swift (VisualEffectBackground)
+- WebcamCaptureEngine uses AVCaptureSession at 480p, outputs CIImage to latestFrame
+- SCContentFilter in ScreenRecorder uses display mode: SCContentFilter(display:excludingApplications:exceptingWindows:)
+- AppState manages mode transitions (.recorder/.editor) and owns RecordingCoordinator + WebcamCaptureEngine
+- project.yml uses XcodeGen with sources glob pattern
+
+---
+
+<!-- Task logs below - APPEND ONLY -->

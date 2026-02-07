@@ -2,23 +2,16 @@
 
 An open-core screen recorder built for developers. Beautiful by default, extensible by design.
 
-## Architecture
-
-- **Desktop App**: Rust + iced.rs for native performance
-- **Web Components**: SolidJS + Tailwind + Kobalte for web UI
-- **Backend**: Hybrid cloud (Supabase + Cloudflare)
+100% Swift. Native macOS.
 
 ## Quick Start
 
+Open `apps/desktop-swift/Frame.xcodeproj` in Xcode and press ⌘R.
+
+Or build from command line:
+
 ```bash
-# Install dependencies
-bun install
-
-# Run desktop app
-cd apps/desktop && cargo run
-
-# Run web app
-cd apps/web && bun dev
+xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame build
 ```
 
 ## Project Structure
@@ -26,15 +19,30 @@ cd apps/web && bun dev
 ```
 frame/
 ├── apps/
-│   ├── desktop/          # Main iced.rs application
-│   └── web/              # Web viewer/sharing
-├── packages/
-│   ├── core/             # Shared Rust library
-│   ├── ui-components/    # Reusable iced.rs components
-│   └── renderer/         # GPU-accelerated rendering
-├── plugins/              # Plugin system
-└── tooling/              # Build & config
+│   └── desktop-swift/    # Swift/macOS native app (Xcode project)
+│       └── Frame/
+│           ├── App/          # AppState, entry point
+│           ├── Recording/    # Screen, webcam, cursor capture
+│           ├── Playback/     # Video playback
+│           ├── Export/       # Export engine
+│           ├── Overlay/      # Floating panels
+│           ├── Effects/      # Zoom, visual effects
+│           ├── Models/       # Data models
+│           └── Views/        # SwiftUI views
+└── docs/                 # Documentation
 ```
+
+## Tech Stack
+
+| Component      | Technology        | Purpose                       |
+| -------------- | ----------------- | ----------------------------- |
+| Language       | Swift 5.9+        | Application logic             |
+| UI Framework   | SwiftUI + AppKit  | Native macOS interface        |
+| Screen Capture | ScreenCaptureKit  | macOS native screen recording |
+| Webcam         | AVFoundation      | Camera input                  |
+| Video Encoding | AVAssetWriter     | Hardware-accelerated encoding |
+| GPU Rendering  | CoreImage + Metal | Effects, webcam preview       |
+| Display Sync   | CoreVideo         | CVDisplayLink frame timing    |
 
 ## License
 

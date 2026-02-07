@@ -1,57 +1,35 @@
 # Frame Task Runner
-# Install with: cargo install just
+# Install with: brew install just
 
 # Default recipe - show available commands
 default:
     @just --list
 
-# Development commands
+# Development - open in Xcode
 dev:
-    cd apps/desktop && cargo run
+    open apps/desktop-swift/Frame.xcodeproj
 
-# Build commands
+# Build the app
 build:
-    cargo build --release
+    xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame build
 
-build-desktop:
-    cd apps/desktop && cargo build --release
+# Build for release
+build-release:
+    xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame -configuration Release build
 
-# Testing
+# Run tests
 test:
-    cargo test --workspace
+    xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame test
 
-test-core:
-    cargo test -p frame-core
-
-# Linting and formatting
+# Lint JS files
 lint:
-    cargo clippy --workspace -- -D warnings
-    cd .. && bun run lint
+    bun run lint
 
+# Format JS files
 format:
-    cargo fmt --all
-    cd .. && bun run format
+    bun run format
 
-# Cleanup
+# Clean build artifacts
 clean:
-    cargo clean
-    rm -rf target/
-
-# Install dependencies
-install:
-    cargo fetch
-    cd .. && bun install
-
-# Release build for distribution
-release-macos:
-    cargo build --release --target x86_64-apple-darwin
-    cargo build --release --target aarch64-apple-darwin
-    # TODO: Create universal binary and .app bundle
-
-# Development helpers
-watch:
-    cargo watch -x "run --package frame-desktop"
-
-# Documentation
-docs:
-    cargo doc --workspace --open
+    xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame clean
+    rm -rf ~/Library/Developer/Xcode/DerivedData/Frame-*

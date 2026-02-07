@@ -1,0 +1,59 @@
+# Progress Log
+
+Bead: bd-3cv
+Started: 2026-02-07
+
+## Root Cause Analysis (Complete)
+
+**Primary cause:** `AVCaptureSession.startRunning()` called on main thread at WebcamCaptureEngine.swift:131
+- Class is `@MainActor`, so `start()` runs on main
+- `session.startRunning()` is synchronous and blocks 200-500ms+ while webcam hardware initializes
+- Violates AGENTS.md anti-pattern: "Never call startRunning()/stopRunning() on main thread"
+
+**Secondary cause:** `SCStream.startCapture()` awaited on main actor at ScreenRecorder.swift:179
+- Class is `@MainActor`, so `startRecording()` runs on main
+- `try await captureStream.startCapture()` blocks main thread during ScreenCaptureKit setup
+
+**Call chain:**
+RecordingView button → appState.startRecording() → Task { startRecordingAsync() }
+→ coordinator.startRecording() → screenRecorder.startRecording()
+→ captureStream.startCapture() [BLOCKS MAIN]
+
+**Fix approach:**
+1. WebcamCaptureEngine: dispatch startRunning/stopRunning to existing `outputQueue` via `withCheckedContinuation`
+2. ScreenRecorder: wrap startCapture() in `Task.detached` to escape @MainActor
+
+## Codebase Patterns
+
+- WebcamCaptureEngine owns `outputQueue = DispatchQueue(label: "com.frame.webcam-output", qos: .userInteractive)` — reuse for startRunning/stopRunning
+- `stop()` is currently synchronous — needs to become `async` to await background stopRunning
+- Changing `stop()` signature requires updating call sites in AppState
+
+---
+
+## Round 2 Fix (2026-02-07)
+
+### New Root Cause (after first fix still froze)
+The first fix (webcam start/stop off main thread + SCStream.startCapture in Task.detached) was necessary but insufficient.
+
+**Remaining freeze cause:** The entire AVAssetWriter + SCStream pipeline setup was still running on @MainActor:
+- AVAssetWriter creation
+- AVAssetWriterInput creation and configuration
+- writer.startWriting()
+- RecordingStreamOutput creation
+- SCStream creation and addStreamOutput
+- Only startCapture() was in Task.detached
+
+This meant ~50-200ms of synchronous setup code ran on main thread before the detached task even started.
+
+**Additional issue:** RecordingToolbarPanel alert only had "OK" button — no "Open System Settings" when permission denied. User couldn't easily fix permissions from the toolbar.
+
+### Fix Applied
+1. **ScreenRecorder.swift**: Wrapped the ENTIRE AVAssetWriter + SCStream setup (from writer creation through startCapture) in a single `Task.detached`. Only state assignment (`self.assetWriter`, `self.stream`, `isRecording`, etc.) happens back on @MainActor after the detached task completes.
+2. **RecordingToolbarPanel.swift**: Added "Open System Settings" button to the error alert when `showOpenSettings` is true (permission denied errors).
+
+### Verification
+- BUILD SUCCEEDED ✅
+- All changes are in 2 files: ScreenRecorder.swift, RecordingToolbarPanel.swift
+
+<!-- Task logs below - APPEND ONLY -->

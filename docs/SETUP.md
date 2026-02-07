@@ -8,13 +8,13 @@ Complete guide for setting up Frame development environment.
 
 ### Required
 
-- **macOS 12.3+** (Monterey) - ScreenCaptureKit requires macOS 12.3 or later
-- **Rust 1.75+** - Install via [rustup](https://rustup.rs/)
-- **Bun 1.0+** - Install via [bun.sh](https://bun.sh/)
+- **macOS 13.0+** (Ventura) — ScreenCaptureKit requires macOS 13.0 or later
+- **Xcode 15.0+** — For building the Swift desktop app
 
-### Optional (for system audio)
+### Optional
 
-- **BlackHole 0.5.0+** - Virtual audio driver for system audio capture
+- **Bun 1.0+** — For JS tooling (linting/formatting)
+- **BlackHole 0.5.0+** — Virtual audio driver for system audio capture
 
 ---
 
@@ -27,254 +27,85 @@ git clone https://github.com/frame/frame.git
 cd frame
 ```
 
-### 2. Install Rust Dependencies
+### 2. Open in Xcode
 
 ```bash
-# Fetch all workspace dependencies
-cargo fetch
+open apps/desktop-swift/Frame.xcodeproj
 ```
 
-### 3. Install JavaScript Dependencies
+### 3. Run
+
+Press **⌘R** in Xcode to build and run.
+
+Or from command line:
 
 ```bash
-bun install
-```
-
-### 4. Build the Project
-
-```bash
-# Build all packages
-cargo build --release
-
-# Or use just
-just build
-```
-
-### 5. Run the Desktop App
-
-```bash
-# Run in development mode
-cd apps/desktop && cargo run
-
-# Or use just
-just dev
+xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame build
 ```
 
 ---
 
-## Detailed Setup
+## Permissions Setup
 
-### Rust Installation
+Frame requires these macOS permissions to function:
 
-If you don't have Rust installed:
+### Screen Recording
 
-```bash
-# Install rustup
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+1. Open **System Settings** → **Privacy & Security** → **Screen Recording**
+2. Enable Frame (or your terminal/Xcode if running in debug)
+3. You may need to restart the app after granting permission
 
-# Add to PATH
-source $HOME/.cargo/env
+### Camera
 
-# Verify installation
-rustc --version  # Should be 1.75 or higher
-cargo --version
-```
+- Granted via system prompt on first webcam use
+- Can be managed in **System Settings** → **Privacy & Security** → **Camera**
 
-### Bun Installation
+### Microphone
 
-If you don't have Bun installed:
+- Granted via system prompt on first audio capture
+- Can be managed in **System Settings** → **Privacy & Security** → **Microphone**
 
-```bash
-# Install Bun
-curl -fsSL https://bun.sh/install | bash
+---
 
-# Add to PATH (follow instructions in output)
-# Verify installation
-bun --version  # Should be 1.0 or higher
-```
+## BlackHole Setup (Optional — System Audio)
 
-### ffmpeg Installation
+BlackHole is required for capturing system audio (app sounds, video audio, etc.):
 
-ffmpeg is required for video encoding:
+### Install
 
 ```bash
 # Using Homebrew (recommended)
-brew install ffmpeg
-
-# Verify installation
-ffmpeg -version
-```
-
-### BlackHole Installation (Optional)
-
-BlackHole is required for capturing system audio (e.g., video audio, game sounds):
-
-#### Option 1: Homebrew (Recommended)
-
-```bash
 brew install blackhole-2ch
 ```
 
-#### Option 2: Manual Download
+Or download from [existential.audio/blackhole](https://existential.audio/blackhole/).
 
-1. Download from [existential.audio/blackhole](https://existential.audio/blackhole/)
-2. Open the `.pkg` file and follow installation instructions
-3. Restart your Mac
-
-#### Configure BlackHole
+### Configure
 
 1. Open **Audio MIDI Setup** (search in Spotlight)
-2. Click the **+** button and select **Create Multi-Output Device**
+2. Click **+** → **Create Multi-Output Device**
 3. Check both **BlackHole 2ch** and your speakers/headphones
-4. Right-click the multi-output device and select **Use This Device for Sound Output**
-5. In Frame app settings, select **BlackHole 2ch** as system audio input
-
----
-
-## Development Workflow
-
-### Using Just (Task Runner)
-
-We use `just` as our task runner. Install it:
-
-```bash
-brew install just
-```
-
-Available commands:
-
-```bash
-just dev          # Run desktop app in development mode
-just build        # Build release version
-just test         # Run all tests
-just lint         # Run linters
-just format       # Format code
-just clean        # Clean build artifacts
-```
-
-### Using Cargo
-
-```bash
-# Build
-cargo build --release
-
-# Test
-cargo test --workspace
-
-# Format
-cargo fmt --all
-
-# Lint
-cargo clippy --workspace -- -D warnings
-
-# Documentation
-cargo doc --workspace --open
-```
-
-### Using Bun
-
-```bash
-# Install dependencies
-bun install
-
-# Run linting
-bun run lint
-
-# Fix linting issues
-bun run lint:fix
-
-# Format code
-bun run format
-```
+4. Right-click the multi-output device → **Use This Device for Sound Output**
+5. In Frame settings, select **BlackHole 2ch** as system audio input
 
 ---
 
 ## IDE Setup
 
-### VS Code
+### Xcode (Primary)
+
+Xcode is the primary development environment:
+
+1. Open `apps/desktop-swift/Frame.xcodeproj`
+2. Select the **Frame** scheme
+3. **⌘R** to run, **⌘B** to build, **⌘U** to test
+
+### VS Code (Optional — for docs/JS)
 
 Recommended extensions:
 
-- **rust-analyzer** - Rust language support
-- **Biome** - JavaScript/TypeScript linting and formatting
-- **Even Better TOML** - TOML file support
-- **CodeLLDB** - Debugging support
-
-Settings:
-
-```json
-{
-  "rust-analyzer.cargo.features": "all",
-  "rust-analyzer.checkOnSave.command": "clippy",
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "biomejs.biome"
-}
-```
-
-### RustRover / IntelliJ
-
-1. Install the **Rust** plugin
-2. Import the project as a Cargo project
-3. Enable clippy inspections in settings
-
----
-
-## Troubleshooting
-
-### Build Errors
-
-#### "ffmpeg not found"
-
-```bash
-brew install ffmpeg
-```
-
-#### "ScreenCaptureKit not available"
-
-- Ensure you're on macOS 12.3 or later
-- Check: `sw_vers -productVersion`
-
-#### "Permission denied" when recording
-
-1. Open **System Preferences** → **Security & Privacy** → **Privacy**
-2. Select **Screen Recording**
-3. Add your terminal/IDE and Frame app
-4. Restart the app
-
-### Runtime Issues
-
-#### "No audio in recording"
-
-1. Check microphone permissions in System Preferences
-2. If using system audio, ensure BlackHole is installed and configured
-3. Check audio levels in Frame settings
-
-#### "Recording stops unexpectedly"
-
-- Check available disk space (need at least 1GB free)
-- Check Console.app for crash logs
-- Try reducing recording resolution or frame rate
-
-### Development Issues
-
-#### "cargo check is slow"
-
-```bash
-# Enable sccache for faster builds
-brew install sccache
-cargo install cargo-cache
-cargo cache -a  # Clean cache
-```
-
-#### "Hot reload not working"
-
-```bash
-# Install cargo-watch
-cargo install cargo-watch
-
-# Use just watch
-just watch
-```
+- **Biome** — JS linting and formatting
+- **Swift** (sswg.swift-lang) — Basic Swift support
 
 ---
 
@@ -283,38 +114,62 @@ just watch
 ```
 frame/
 ├── apps/
-│   └── desktop/          # Main desktop application
-├── packages/
-│   ├── core/            # Core recording library
-│   ├── ui-components/   # Reusable UI components
-│   └── renderer/        # GPU rendering (future)
-├── docs/                # Documentation
-├── tooling/             # Build tools and configs
-├── Cargo.toml          # Rust workspace
-├── package.json        # Bun workspace
-├── biome.json          # Biome configuration
-└── Justfile            # Task runner
+│   └── desktop-swift/    # Swift/macOS native app (Xcode project)
+│       └── Frame/
+│           ├── App/          # AppState, entry point
+│           ├── Recording/    # Screen, webcam, cursor capture
+│           ├── Playback/     # Video playback
+│           ├── Export/       # Export engine
+│           ├── Overlay/      # Floating panels
+│           ├── Effects/      # Zoom, visual effects
+│           ├── Models/       # Data models
+│           ├── Utilities/    # Permissions
+│           └── Views/        # SwiftUI views
+├── docs/                 # Documentation
+├── package.json          # Bun workspace (JS tooling only)
+└── biome.json            # Biome configuration
 ```
+
+---
+
+## Troubleshooting
+
+### Build Errors
+
+#### "ScreenCaptureKit not available"
+
+- Ensure you're on macOS 13.0 or later
+- Check: `sw_vers -productVersion`
+
+#### "Permission denied" when recording
+
+1. Open **System Settings** → **Privacy & Security** → **Screen Recording**
+2. Add Xcode and/or Frame
+3. Restart the app
+
+### Runtime Issues
+
+#### Webcam preview frozen during recording
+
+- This was fixed with GPU-backed CIImageView rendering
+- If still occurring, check Console.app for errors
+
+#### No audio in recording
+
+1. Check microphone permissions
+2. If using system audio, ensure BlackHole is installed and configured
+3. Check audio levels in Frame settings
+
+#### Recording stops unexpectedly
+
+- Check available disk space (need at least 1GB free)
+- Check Console.app for crash logs
+- Try reducing recording resolution or frame rate
 
 ---
 
 ## Next Steps
 
-1. Read the [API Documentation](API.md)
+1. Read the [Documentation](README.md)
 2. Check out [Contributing Guide](CONTRIBUTING.md)
-3. Join our Discord community (coming soon)
-4. Star the project on GitHub ⭐
-
----
-
-## Getting Help
-
-- **GitHub Issues**: [github.com/frame/frame/issues](https://github.com/frame/frame/issues)
-- **Discussions**: [github.com/frame/frame/discussions](https://github.com/frame/frame/discussions)
-- **Discord**: Coming soon
-
----
-
-## License
-
-Frame is dual-licensed under MIT and Apache-2.0. See LICENSE files for details.
+3. Open the Xcode project and explore the codebase
