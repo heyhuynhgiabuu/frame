@@ -1,0 +1,148 @@
+{
+  "beadId": "bd-317",
+  "prdName": "floating-overlay-panels",
+  "tasks": [
+    {
+      "id": "infrastructure-1",
+      "category": "infrastructure",
+      "description": "A reusable NSPanel subclass exists at Frame/Overlay/FloatingPanel.swift with non-activating, borderless, always-on-top, transparent, multi-space behavior configured.",
+      "steps": [
+        "File exists and compiles",
+        "Panel can be instantiated with SwiftUI content via NSHostingView",
+        "Panel has .nonactivatingPanel, .fullScreenAuxiliary, .canJoinAllSpaces configured"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["Frame/Overlay/FloatingPanel.swift"]
+      }
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "A floating frosted-glass toolbar at bottom-center shows recording controls (idle: source picker, audio toggles, webcam toggle, record button; recording: red dot, timer, stop button).",
+      "steps": [
+        "Toolbar renders with NSVisualEffectView glass background",
+        "Shows correct controls for idle vs recording states",
+        "Positioned at bottom-center of screen, above Dock"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["infrastructure-1"],
+        "parallel": false,
+        "conflicts_with": ["ui-2"],
+        "files": [
+          "Frame/Overlay/RecordingToolbarPanel.swift",
+          "Frame/Views/Recording/SourcePicker.swift"
+        ]
+      }
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "A draggable floating panel at bottom-right shows live webcam feed from WebcamCaptureEngine.latestFrame in a rounded rectangle with shadow.",
+      "steps": [
+        "Panel shows live camera feed",
+        "Panel is draggable to any position",
+        "Panel has rounded corners and shadow",
+        "Panel hides when webcam is disabled"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["infrastructure-1"],
+        "parallel": false,
+        "conflicts_with": ["ui-1"],
+        "files": [
+          "Frame/Overlay/WebcamPreviewPanel.swift",
+          "Frame/Recording/WebcamCaptureEngine.swift"
+        ]
+      }
+    },
+    {
+      "id": "wiring-1",
+      "category": "wiring",
+      "description": "An OverlayManager class manages the lifecycle of toolbar and webcam panels, showing/hiding them based on recording mode. AppState owns the OverlayManager and triggers show/hide on mode transitions.",
+      "steps": [
+        "Panels appear when entering recorder mode",
+        "Panels dismiss when switching to editor mode",
+        "Start/Stop recording buttons on toolbar trigger RecordingCoordinator",
+        "All new files added to project.yml"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["ui-1", "ui-2"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "Frame/Overlay/OverlayManager.swift",
+          "Frame/App/AppState.swift",
+          "Frame/Recording/RecordingCoordinator.swift",
+          "apps/desktop-swift/project.yml"
+        ]
+      }
+    },
+    {
+      "id": "capture-1",
+      "category": "capture",
+      "description": "ScreenRecorder excludes both floating panels from the SCContentFilter so they don't appear in recordings. Falls back to sharingType = .none if needed.",
+      "steps": [
+        "Record a screen capture with panels visible",
+        "Review the output video — no toolbar or webcam panel visible",
+        "Both sharingType = .none and SCContentFilter exclusion paths work"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["wiring-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Recording/ScreenRecorder.swift", "Frame/Overlay/OverlayManager.swift"]
+      }
+    },
+    {
+      "id": "verification-1",
+      "category": "verification",
+      "description": "Full project builds and all panels work end-to-end.",
+      "steps": [
+        "xcodegen generate && xcodebuild build succeeds",
+        "App launches, recorder mode shows floating panels",
+        "Recording produces clean video without overlay artifacts"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["capture-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": []
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "NSViewRepresentable bridge: VisualEffectBackground in RecordingView.swift",
+      "Webcam capture: WebcamCaptureEngine outputs CIImage via latestFrame",
+      "Screen capture filter: SCContentFilter(display:excludingApplications:exceptingWindows:)"
+    ],
+    "keyFiles": [
+      "Frame/Recording/ScreenRecorder.swift",
+      "Frame/Recording/WebcamCaptureEngine.swift",
+      "Frame/App/AppState.swift",
+      "Frame/Recording/RecordingCoordinator.swift"
+    ],
+    "nonGoals": [
+      "Countdown timer before recording",
+      "Area selection overlay with drag handles",
+      "Webcam shape options (circle vs rounded rect)",
+      "Audio level meters",
+      "Panel position persistence"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": [],
+    "parallel": true,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 6
+  }
+}

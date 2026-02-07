@@ -2,322 +2,283 @@
 
 ## Overview
 
-Frame is built with a modular architecture consisting of multiple Rust crates. This document describes the public API for each crate.
+Frame is a 100% Swift native macOS screen recorder. This document describes the public API for each module.
 
 ---
 
-## frame-core
+## App
 
-Core library for screen recording functionality.
+### AppState
 
-### Modules
+`@MainActor @Observable` singleton managing app-wide state.
 
-#### `capture`
-
-Screen and audio capture abstractions.
-
-```rust
-use frame_core::capture::{ScreenCapture, CaptureConfig, CaptureArea, Frame, AudioBuffer};
+```swift
+@MainActor
+@Observable
+class AppState {
+    var currentMode: AppMode           // .recorder, .editor, .export
+    var isRecording: Bool              // Recording in progress
+    var currentProject: Project?       // Active project
+    var recordingConfig: RecordingConfig  // Capture settings
+    var overlayManager: OverlayManager?  // Floating panel lifecycle
+}
 ```
 
-**Traits:**
-
-- `ScreenCapture` - Platform-agnostic screen capture interface
-  - `start(config: CaptureConfig)` - Begin capture session
-  - `stop()` - End capture session
-  - `next_frame()` - Get next video frame
-  - `next_audio_buffer()` - Get next audio buffer
-
-**Structs:**
-
-- `CaptureConfig` - Configuration for capture session
-  - `capture_area: CaptureArea` - Full screen, window, or region
-  - `capture_cursor: bool` - Whether to capture cursor
-  - `capture_audio: bool` - Whether to capture audio
-  - `frame_rate: u32` - Target frame rate (e.g., 60)
-
-- `Frame` - Video frame data
-  - `data: Vec<u8>` - Raw pixel data
-  - `width: u32` - Frame width
-  - `height: u32` - Frame height
-  - `timestamp: Duration` - Frame timestamp
-  - `format: PixelFormat` - Pixel format (RGBA, BGRA, etc.)
-
-- `AudioBuffer` - Audio sample data
-  - `samples: Vec<f32>` - Audio samples
-  - `sample_rate: u32` - Sample rate (e.g., 48000)
-  - `channels: u16` - Number of channels
-  - `timestamp: Duration` - Buffer timestamp
-
-#### `encoder`
-
-Video encoding using ffmpeg.
-
-```rust
-use frame_core::encoder::Encoder;
-```
-
-**Structs:**
-
-- `Encoder` - Video encoder
-  - `new()` - Create new encoder
-  - `encode_frame(frame: &Frame)` - Encode video frame
-  - `encode_audio(buffer: &AudioBuffer)` - Encode audio buffer
-  - `finalize(output_path: &Path)` - Write final video file
-
-#### `project`
-
-Project management and persistence.
-
-```rust
-use frame_core::project::{Project, ProjectSettings, Recording, Export};
-```
-
-**Structs:**
-
-- `Project` - Recording project
-  - `new(name: &str)` - Create new project
-  - `save()` - Save project to disk
-  - `load(project_id: &str)` - Load project from disk
-  - `project_dir()` - Get project directory path
-  - `id: String` - Unique project ID
-  - `name: String` - Project name
-  - `settings: ProjectSettings` - Project settings
-  - `recordings: Vec<Recording>` - List of recordings
-  - `exports: Vec<Export>` - List of exports
-
-- `ProjectSettings` - Project configuration
-  - `resolution: Resolution` - Video resolution
-  - `frame_rate: u32` - Frame rate
-  - `video_codec: VideoCodec` - Video codec (H.264, H.265, etc.)
-  - `audio_codec: AudioCodec` - Audio codec (AAC, Opus, etc.)
-  - `quality: Quality` - Quality preset
-
-- `Recording` - Individual recording session
-  - `id: String` - Recording ID
-  - `started_at: DateTime<Utc>` - Start timestamp
-  - `duration_ms: u64` - Duration in milliseconds
-  - `file_path: PathBuf` - Path to raw recording file
-
-- `Export` - Exported video file
-  - `id: String` - Export ID
-  - `file_path: PathBuf` - Path to exported file
-  - `format: ExportFormat` - Export format (MP4, MOV, etc.)
-  - `resolution: Resolution` - Export resolution
-
-**Enums:**
-
-- `Resolution` - Video resolutions
-  - `Hd720` - 1280x720
-  - `Hd1080` - 1920x1080
-  - `QuadHd` - 2560x1440
-  - `Uhd4k` - 3840x2160
-
-- `VideoCodec` - Video codecs
-  - `H264` - H.264/AVC
-  - `H265` - H.265/HEVC
-  - `ProRes` - Apple ProRes
-
-- `AudioCodec` - Audio codecs
-  - `Aac` - AAC
-  - `Opus` - Opus
-
-- `Quality` - Quality presets
-  - `Low` - Low quality, small file
-  - `Medium` - Balanced
-  - `High` - High quality
-
-#### `error`
-
-Error types for Frame.
-
-```rust
-use frame_core::{FrameError, FrameResult};
-```
-
-**Types:**
-
-- `FrameError` - Error enum with variants:
-  - `Io(std::io::Error)` - IO errors
-  - `Serialization(serde_json::Error)` - JSON errors
-  - `Capture(String)` - Capture errors
-  - `Encoding(String)` - Encoding errors
-  - `Project(String)` - Project errors
-  - `Audio(String)` - Audio errors
-  - `PlatformNotSupported(String)` - Platform errors
-  - `ProFeature(String)` - Pro feature errors
-
-- `FrameResult<T>` - Result type alias
-
----
-
-## frame-ui
-
-Reusable UI components for iced.rs.
-
-### Modules
-
-#### `components`
-
-UI components.
-
-```rust
-use frame_ui::components::{primary_button, secondary_button, text_input};
-```
-
-**Functions:**
-
-- `primary_button(label: &str) -> Button<Message>` - Primary action button
-- `secondary_button(label: &str) -> Button<Message>` - Secondary action button
-- `text_input(placeholder: &str, value: &str) -> TextInput<Message>` - Text input field
-
-#### `theme`
-
-Theme and styling.
-
-```rust
-use frame_ui::theme::default_theme;
-```
-
-**Functions:**
-
-- `default_theme() -> Theme` - Returns default dark theme
-
----
-
-## frame-renderer
-
-GPU-accelerated rendering (future feature).
-
-```rust
-use frame_renderer::Renderer;
-```
-
-**Structs:**
-
-- `Renderer` - GPU renderer
-  - `new() -> Renderer` - Create new renderer
-
----
-
-## frame-desktop
-
-Main desktop application. Not a library, but documents the app structure.
-
-### Architecture
-
-The desktop app uses **The Elm Architecture** pattern:
-
-1. **Model** - `FrameApp` struct holds application state
-2. **Messages** - `Message` enum represents all possible actions
-3. **Update** - `update()` function handles state transitions
-4. **View** - `view()` function renders UI based on state
-
-### State Machine
+**Modes:**
 
 ```
-Idle → Recording → Previewing → Exporting → Idle
-```
-
-**States:**
-
-- `Idle` - Ready to record
-- `Recording { start_time }` - Currently recording
-- `Previewing { project_id }` - Reviewing recording
-- `Exporting { project_id, progress }` - Exporting video
-
-### Messages
-
-- `StartRecording` - Begin recording
-- `StopRecording` - End recording
-- `PauseRecording` - Pause (if supported)
-- `ResumeRecording` - Resume (if supported)
-- `RecordingStarted` - Recording started successfully
-- `RecordingStopped(project_id)` - Recording stopped
-- `ExportProject(project_id)` - Start export
-- `ExportProgress(f32)` - Export progress update
-- `ExportComplete` - Export finished
-- `ThemeChanged(Theme)` - Change UI theme
-- `SettingsOpened` - Open settings
-
----
-
-## Examples
-
-### Creating a New Project
-
-```rust
-use frame_core::project::Project;
-
-let project = Project::new("My Recording");
-project.save().expect("Failed to save project");
-```
-
-### Starting a Recording
-
-```rust
-use frame_core::capture::{create_capture, CaptureConfig, CaptureArea};
-
-let mut capture = create_capture()?;
-let config = CaptureConfig {
-    capture_area: CaptureArea::FullScreen,
-    capture_cursor: true,
-    capture_audio: true,
-    frame_rate: 60,
-};
-capture.start(config).await?;
-```
-
-### Encoding Video
-
-```rust
-use frame_core::encoder::Encoder;
-use std::path::Path;
-
-let mut encoder = Encoder::new()?;
-encoder.encode_frame(&frame)?;
-encoder.encode_audio(&audio_buffer)?;
-encoder.finalize(Path::new("output.mp4"))?;
+Recorder → Recording → Editor → Export → Recorder
 ```
 
 ---
 
-## Feature Flags
+## Recording
 
-### frame-core
+### ScreenRecorder
 
-- `default` - Enables `capture`
-- `capture` - Screen/audio capture (requires platform-specific deps)
-- `encoding` - Video encoding with ffmpeg
-- `pro` - Pro tier features
+SCStream-based screen capture. Manages the ScreenCaptureKit stream lifecycle.
 
-### frame-desktop
+```swift
+class ScreenRecorder {
+    func startCapture(config: RecordingConfig, webcamFrameProvider: (() -> CIImage?)?) async throws
+    func stopCapture() async throws
+    func updateContentFilter(_ filter: SCContentFilter) async throws
+}
+```
 
-- `default` - Basic features
-- `pro` - Pro tier features (cloud sync, advanced export)
+**Threading:** Uses separate `DispatchQueue` per output type (video, audio, microphone) at `.userInteractive` priority.
+
+### WebcamCaptureEngine
+
+AVCaptureSession-based webcam capture at 480p.
+
+```swift
+class WebcamCaptureEngine {
+    var frameBox: WebcamFrameBox       // Thread-safe frame container
+    var latestFrame: CIImage?          // Most recent camera frame
+
+    func startCapture() throws
+    func stopCapture()
+}
+```
+
+**Key:** `alwaysDiscardsLateVideoFrames = true` prevents memory buildup.
+
+### RecordingCoordinator
+
+Orchestrates screen + webcam + audio recording.
+
+```swift
+class RecordingCoordinator {
+    func startRecording() async throws  // Starts all capture engines
+    func stopRecording() async throws   // Stops and finalizes
+}
+```
+
+### CursorRecorder
+
+Tracks mouse cursor position during recording.
+
+```swift
+class CursorRecorder {
+    func startTracking()
+    func stopTracking()
+    var cursorPositions: [CursorPosition]
+}
+```
+
+### KeystrokeRecorder
+
+Records keyboard events during recording.
+
+```swift
+class KeystrokeRecorder {
+    func startRecording()
+    func stopRecording()
+    var keystrokes: [Keystroke]
+}
+```
 
 ---
 
-## Platform Support
+## Overlay
 
-| Platform    | Screen Capture   | Audio Capture         | Status       |
-| ----------- | ---------------- | --------------------- | ------------ |
-| macOS 12.3+ | ScreenCaptureKit | CoreAudio + BlackHole | ✅ Supported |
-| Linux       | TBD              | TBD                   | 🚧 Planned   |
-| Windows     | TBD              | TBD                   | 🚧 Planned   |
+### FloatingPanel
+
+Reusable `NSPanel` subclass for floating overlays.
+
+```swift
+class FloatingPanel: NSPanel {
+    init(contentRect: NSRect, content: NSView)
+    // - .nonactivatingPanel: Won't steal focus
+    // - .fullScreenAuxiliary: Visible over fullscreen apps
+    // - .canJoinAllSpaces: Visible on all Spaces
+    // - sharingType = .none: Invisible to screen capture
+}
+```
+
+### RecordingToolbarPanel
+
+Frosted-glass toolbar at bottom-center with recording controls.
+
+```swift
+class RecordingToolbarPanel: FloatingPanel {
+    // Idle: source picker, audio toggles, webcam toggle, record button
+    // Recording: red dot, elapsed time, stop button
+}
+```
+
+### WebcamPreviewPanel
+
+Draggable floating panel showing live webcam feed.
+
+```swift
+class WebcamPreviewPanel: FloatingPanel {
+    // GPU-backed CIImageView rendering
+    // Rounded corners, shadow, draggable
+}
+```
+
+### OverlayManager
+
+Manages floating panel lifecycle.
+
+```swift
+@MainActor
+class OverlayManager {
+    func showPanels()                    // Show toolbar + webcam preview
+    func hidePanels()                    // Dismiss all panels
+    func allPanelWindows() -> [NSWindow] // For SCContentFilter exclusion
+}
+```
 
 ---
 
-## Version Compatibility
+## Playback
 
-- **Rust**: 1.75+
-- **macOS**: 12.3+ (Monterey)
-- **Bun**: 1.0+ (for tooling)
+### PlaybackEngine
+
+AVPlayer-based video playback.
+
+```swift
+class PlaybackEngine {
+    func load(url: URL) async throws
+    func play()
+    func pause()
+    func seek(to time: CMTime) async
+    var currentTime: CMTime { get }
+    var duration: CMTime { get }
+}
+```
+
+---
+
+## Export
+
+### ExportEngine
+
+AVAssetWriter-based hardware-accelerated export.
+
+```swift
+class ExportEngine {
+    func export(project: Project, config: ExportConfig) async throws
+    var progress: Double { get }       // 0.0 to 1.0
+}
+```
+
+**Threading:** All AVAssetWriter operations on a single serial queue.
+
+### ExportConfig
+
+```swift
+struct ExportConfig {
+    var format: ExportFormat          // .mp4, .mov, .gif
+    var quality: Quality             // .low, .medium, .high
+    var resolution: Resolution       // .original, .hd720, .hd1080
+    var includeWebcam: Bool
+    var webcamConfig: WebcamOverlayConfig?
+}
+```
+
+---
+
+## Effects
+
+### ZoomEngine
+
+Zoom/pan effects applied during export.
+
+```swift
+class ZoomEngine {
+    func addZoomEffect(at time: CMTime, duration: CMTime, rect: CGRect)
+    func applyEffects(to frame: CIImage, at time: CMTime) -> CIImage
+}
+```
+
+---
+
+## Models
+
+### Project
+
+Recording project containing metadata and references.
+
+```swift
+struct Project: Codable, Identifiable {
+    let id: UUID
+    var name: String
+    var createdAt: Date
+    var videoURL: URL?
+    var duration: TimeInterval?
+    var cursorData: [CursorPosition]
+    var keystrokeData: [Keystroke]
+}
+```
+
+### RecordingConfig
+
+Capture settings.
+
+```swift
+struct RecordingConfig {
+    var captureType: CaptureType      // .display or .window
+    var frameRate: Int                 // Default: 30
+    var showsCursor: Bool
+    var captureSystemAudio: Bool
+    var captureMicrophone: Bool
+    var enableWebcam: Bool
+    var quality: Quality
+}
+```
+
+---
+
+## Frameworks Used
+
+| Framework         | Purpose                       | Min Version |
+| ----------------- | ----------------------------- | ----------- |
+| ScreenCaptureKit  | Screen capture                | macOS 13.0+ |
+| AVFoundation      | Webcam, audio, video playback | macOS 13.0+ |
+| AVAssetWriter     | Hardware-accelerated encoding | macOS 13.0+ |
+| CoreImage / Metal | GPU effects, webcam rendering | macOS 13.0+ |
+| CoreVideo         | CVDisplayLink, pixel buffers  | macOS 13.0+ |
+| SwiftUI           | UI framework                  | macOS 13.0+ |
+| AppKit            | NSPanel, NSWindow, NSEvent    | macOS 13.0+ |
+| Combine           | Reactive data flow            | macOS 13.0+ |
+
+---
+
+## Permissions
+
+| Permission       | Required For             | Prompt                        |
+| ---------------- | ------------------------ | ----------------------------- |
+| Screen Recording | ScreenCaptureKit capture | System Settings manual toggle |
+| Camera           | Webcam capture           | System alert on first use     |
+| Microphone       | Microphone audio         | System alert on first use     |
 
 ---
 
 ## See Also
 
-- [Setup Guide](SETUP.md) - Installation and configuration
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute
-- [Architecture](ARCHITECTURE.md) - System architecture (coming soon)
+- [Swift Best Practices](SWIFT-BEST-PRACTICES.md) — Comprehensive coding patterns and performance guidelines
+- [README](README.md) — Getting started guide

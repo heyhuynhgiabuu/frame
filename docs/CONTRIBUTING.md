@@ -6,8 +6,6 @@ Thank you for your interest in contributing to Frame! This guide will help you g
 
 ## Code of Conduct
 
-This project adheres to a code of conduct. By participating, you are expected to uphold this code:
-
 - Be respectful and inclusive
 - Welcome newcomers
 - Focus on constructive feedback
@@ -19,45 +17,29 @@ This project adheres to a code of conduct. By participating, you are expected to
 
 ### Reporting Bugs
 
-Before creating a bug report:
-
-1. Check if the issue already exists in [GitHub Issues](https://github.com/frame/frame/issues)
-2. Update to the latest version to see if it's already fixed
-3. Try to isolate the problem with minimal steps to reproduce
-
-When reporting bugs, include:
+Include:
 
 - **macOS version** (e.g., 14.2.1)
-- **Frame version** (e.g., 0.1.0)
+- **Xcode version** (e.g., 15.2)
 - **Hardware** (e.g., MacBook Pro M1, 16GB RAM)
 - **Steps to reproduce**
-- **Expected behavior**
-- **Actual behavior**
+- **Expected vs actual behavior**
 - **Screenshots/videos** if applicable
-- **Console logs** (from Console.app or terminal)
-
-### Suggesting Features
-
-Feature requests are welcome! Please:
-
-1. Check if the feature is already requested
-2. Explain the use case and why it would be valuable
-3. Consider if it fits Frame's scope (developer-focused screen recorder)
+- **Console logs** (from Console.app or Xcode)
 
 ### Pull Requests
 
 1. **Fork** the repository
 2. **Create a branch** from `main` (e.g., `feature/my-feature` or `fix/bug-description`)
-3. **Make your changes** following our coding standards
-4. **Test your changes** thoroughly
-5. **Update documentation** if needed
-6. **Submit a pull request** with a clear description
+3. **Make your changes** following coding standards
+4. **Test** in Xcode (⌘R to run, ⌘U for tests)
+5. **Submit a pull request** with a clear description
 
 ---
 
 ## Development Setup
 
-See [SETUP.md](SETUP.md) for detailed setup instructions.
+See [SETUP.md](SETUP.md) for detailed instructions.
 
 Quick start:
 
@@ -66,104 +48,48 @@ Quick start:
 git clone https://github.com/YOUR_USERNAME/frame.git
 cd frame
 
-# Install dependencies
-cargo fetch
-bun install
+# Open in Xcode
+open apps/desktop-swift/Frame.xcodeproj
 
-# Build and run
-cargo build --release
-cd apps/desktop && cargo run
+# Press ⌘R to build and run
 ```
 
 ---
 
 ## Coding Standards
 
-### Rust
+### Swift
 
-We follow the [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/):
-
-- Use `cargo fmt` for formatting
-- Use `cargo clippy` for linting (zero warnings policy)
-- Write documentation comments for all public APIs
-- Use meaningful variable names
-- Prefer composition over inheritance
-- Handle errors explicitly (no unwrap in production code)
+- Follow [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/)
+- Use SwiftUI for new views
+- Use `@Observable` for state (not `ObservableObject` unless needed for Combine)
+- Handle errors with `throws` / `Result` — no force unwraps (`!`) in production
+- Use `async/await` for asynchronous code
+- Keep functions focused and under 50 lines when possible
 
 Example:
 
-````rust
-/// Captures the screen using the provided configuration.
+```swift
+/// Starts screen recording with the given configuration.
 ///
-/// # Arguments
-///
-/// * `config` - Capture configuration specifying area, cursor, audio settings
-///
-/// # Returns
-///
-/// Returns `Ok(())` if capture started successfully, or a `FrameError` if
-/// permission was denied or configuration is invalid.
-///
-/// # Example
-///
-/// ```
-/// let config = CaptureConfig::default();
-/// capture.start(config).await?;
-/// ```
-pub async fn start(&mut self, config: CaptureConfig) -> FrameResult<()> {
-    // Implementation
+/// - Parameter config: Recording settings (frame rate, audio, etc.)
+/// - Throws: `RecordingError` if permissions are denied or capture fails
+func startRecording(config: RecordingConfig) async throws {
+    guard Permissions.hasScreenRecording else {
+        throw RecordingError.screenRecordingPermissionDenied
+    }
+    // ...
 }
-````
-
-### JavaScript/TypeScript
-
-We use **Biome** for linting and formatting:
-
-```bash
-bun run lint     # Check for issues
-bun run lint:fix # Fix auto-fixable issues
-bun run format   # Format code
 ```
-
-Standards:
-
-- Use TypeScript for all new code
-- Prefer `const` and `let` over `var`
-- Use async/await over raw promises
-- Write meaningful function and variable names
-- Add JSDoc comments for public functions
 
 ### Git Commits
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-Types:
-
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, no logic change)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Adding or updating tests
-- `chore`: Build process, dependencies, etc.
-
-Examples:
-
-```
-feat(capture): add ScreenCaptureKit integration
-
-fix(ui): resolve recording button state issue
-docs(api): update encoder documentation
-refactor(core): simplify error handling
+feat(recording): add webcam compositing during capture
+fix(overlay): resolve webcam preview freeze during recording
+refactor(export): simplify encoding pipeline
 ```
 
 ---
@@ -171,199 +97,59 @@ refactor(core): simplify error handling
 ## Project Structure
 
 ```
-frame/
-├── apps/
-│   └── desktop/          # Main application
-│       ├── src/
-│       │   ├── main.rs   # Entry point
-│       │   ├── app.rs    # Application state
-│       │   └── ui/       # UI components
-│       └── Cargo.toml
-├── packages/
-│   ├── core/            # Core library
-│   │   ├── src/
-│   │   │   ├── capture/ # Screen/audio capture
-│   │   │   ├── encoder/ # Video encoding
-│   │   │   ├── project/ # Project management
-│   │   │   └── error.rs # Error types
-│   │   └── Cargo.toml
-│   ├── ui-components/   # Reusable UI
-│   └── renderer/        # GPU rendering
-├── docs/                # Documentation
-└── tooling/             # Build tools
+apps/desktop-swift/
+└── Frame/
+    ├── App/          # App entry point, AppState
+    ├── Recording/    # Screen, webcam, cursor, keystroke capture
+    ├── Playback/     # Video playback engine
+    ├── Export/       # Export config & engine
+    ├── Overlay/      # Floating panels (toolbar, webcam preview)
+    ├── Effects/      # Zoom engine, visual effects
+    ├── Models/       # Data models
+    ├── Utilities/    # Permissions, helpers
+    └── Views/        # SwiftUI views
 ```
 
 ---
 
 ## Testing
 
-### Running Tests
+### In Xcode
+
+- **Run app:** ⌘R
+- **Run tests:** ⌘U
+- **Build only:** ⌘B
+
+### Command Line
 
 ```bash
-# Run all tests
-cargo test --workspace
-
-# Run specific package tests
-cargo test -p frame-core
-
-# Run with output
-cargo test --workspace -- --nocapture
+xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame build
+xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame test
 ```
-
-### Writing Tests
-
-#### Unit Tests
-
-Place unit tests in the same file as the code:
-
-```rust
-// src/capture/mod.rs
-
-pub fn capture_frame() -> Frame {
-    // Implementation
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_capture_frame() {
-        let frame = capture_frame();
-        assert!(frame.width > 0);
-        assert!(frame.height > 0);
-    }
-}
-```
-
-#### Integration Tests
-
-Place integration tests in `tests/` directory:
-
-```rust
-// packages/core/tests/recording_test.rs
-
-use frame_core::capture::*;
-use frame_core::project::Project;
-
-#[tokio::test]
-async fn test_full_recording_flow() {
-    let project = Project::new("Test");
-    // Test full flow
-}
-```
-
-### Test Coverage
-
-Aim for:
-
-- **Core library**: 80%+ coverage
-- **UI components**: Manual testing + snapshot tests
-- **Integration**: Critical user flows
 
 ---
 
-## Documentation
+## Before Submitting
 
-### Code Documentation
-
-- All public APIs must have doc comments
-- Include examples in doc comments
-- Explain "why" not just "what"
-
-### User Documentation
-
-- Update [SETUP.md](SETUP.md) for setup changes
-- Update [API.md](API.md) for API changes
-- Add to CHANGELOG.md for user-facing changes
-
----
-
-## Review Process
-
-### Before Submitting
-
-- [ ] Code compiles without warnings
-- [ ] All tests pass
-- [ ] Code is formatted (`cargo fmt`, `bun run format`)
-- [ ] Linting passes (`cargo clippy`, `bun run lint`)
-- [ ] Documentation updated
+- [ ] Code compiles without warnings (⌘B in Xcode)
+- [ ] All tests pass (⌘U in Xcode)
+- [ ] No force unwraps (`!`) in production code
+- [ ] Tested on macOS 13.0+ target
 - [ ] Commit messages follow conventions
-
-### Review Criteria
-
-Pull requests are reviewed for:
-
-1. **Correctness** - Does it work as intended?
-2. **Code quality** - Is it maintainable?
-3. **Testing** - Is it tested?
-4. **Documentation** - Is it documented?
-5. **Performance** - Are there performance implications?
-6. **Security** - Are there security concerns?
-
-### Response Time
-
-- Initial review: Within 3 days
-- Follow-up reviews: Within 1 day
-- Simple PRs: Usually merged within a week
+- [ ] Documentation updated if needed
 
 ---
 
 ## Areas for Contribution
 
-### Good First Issues
-
-Look for issues labeled `good first issue` or `help wanted`:
-
-- Documentation improvements
-- Small bug fixes
-- Adding tests
-- Code refactoring
-
-### Feature Areas
-
-We're particularly interested in contributions for:
-
-- **Platform support** - Linux and Windows implementations
-- **Performance** - Optimization, hardware acceleration
-- **Effects** - Cursor smoothing, zoom, motion blur
-- **Export formats** - Additional codecs and formats
-- **Accessibility** - Screen reader support, keyboard navigation
-- **Localization** - Translations for other languages
-
----
-
-## Community
-
-### Communication Channels
-
-- **GitHub Issues** - Bug reports and feature requests
-- **GitHub Discussions** - General questions and ideas
-- **Discord** - Real-time chat (coming soon)
-
-### Recognition
-
-Contributors will be:
-
-- Listed in CONTRIBUTORS.md
-- Mentioned in release notes
-- Invited to the core team after sustained contributions
+- **Effects** — Cursor smoothing, zoom, motion blur
+- **Export formats** — Additional codecs and formats
+- **Accessibility** — VoiceOver support, keyboard navigation
+- **Performance** — Recording optimization, memory usage
+- **UI/UX** — Design improvements, animations
 
 ---
 
 ## License
 
 By contributing to Frame, you agree that your contributions will be licensed under the MIT and Apache-2.0 licenses.
-
----
-
-## Questions?
-
-If you have questions:
-
-1. Check existing [documentation](https://github.com/frame/frame/tree/main/docs)
-2. Search [GitHub Discussions](https://github.com/frame/frame/discussions)
-3. Ask in a new discussion thread
-4. Join our Discord (coming soon)
-
-Thank you for contributing to Frame! 🎉

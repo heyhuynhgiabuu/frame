@@ -1,0 +1,569 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00D768A48B87C6BC5A92C053 /* KeystrokeRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66ADF7922AAF2F9259E94EA /* KeystrokeRecorder.swift */; };
+		04788390E72D32D2CEDAB0C2 /* FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8233C763F446AAC9416B1221 /* FloatingPanel.swift */; };
+		0ED302239378EC74F7C839A1 /* KeyboardInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66CD6F1A35F981CDA30399FE /* KeyboardInspector.swift */; };
+		12702BA61EC7CC54814A4523 /* RecordingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01F1F58999CBABB92873A62 /* RecordingConfig.swift */; };
+		132F7DD49BF30FD6716CE5CC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08DF2D7417D40EA46B150146 /* AppState.swift */; };
+		14303987201864FAB4F39FE9 /* KeystrokeOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0108D09BBAE7279BD48F2766 /* KeystrokeOverlayView.swift */; };
+		148DCF9EA9A1413EA9925572 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFBE2000E3071349117B60D /* ContentView.swift */; };
+		14E4BEAF96713BB76B8DCDA6 /* WebcamCaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26CCD748ABA095ECB09CB09 /* WebcamCaptureEngine.swift */; };
+		296A74714EEF72AADD00A32D /* CursorOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E8844D2CF7061FA83F9825 /* CursorOverlayView.swift */; };
+		2AA15B38918DCD207451BCA0 /* CursorInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E68E742B61ECCDFDDD0EFEE1 /* CursorInspector.swift */; };
+		2CB13829D7FBC83CF91CFD12 /* WebcamPreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95837CDAAAA70B0C5883AC6A /* WebcamPreviewPanel.swift */; };
+		37A7AD9C35B139A399E5C893 /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = 389E0B431E77E80D8D8D132F /* Project.swift */; };
+		44A0CAEE479E42D60CC58369 /* BackgroundInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13122695FD91C0E361ADCE77 /* BackgroundInspector.swift */; };
+		51CEEED7A8F8B80B1E467D1F /* OverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630890366A72054798E58494 /* OverlayManager.swift */; };
+		56EA02E4257412565FF00041 /* ExportConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3694BE04A7CBD8201C7867BC /* ExportConfig.swift */; };
+		5E8E6E57E194FAE5B31C07FD /* AudioInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C3F178A328471703458391 /* AudioInspector.swift */; };
+		5F784FB0149DB29DEA464595 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C1C6DCAE75A17A8FC3D5A3 /* ExportView.swift */; };
+		6666A8761D6A7225EF31AF6F /* Permissions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854352E3DBCB89D1266ECEC9 /* Permissions.swift */; };
+		6C1B26A964DDC8734B20B2CA /* ScreenRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EB48CC089B42677C0959CB6 /* ScreenRecorder.swift */; };
+		701FDD37077D41DBF6A4C864 /* CursorRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07079030A5C678F0E454F8A5 /* CursorRecorder.swift */; };
+		72F500F84AE2E09A0D850B94 /* RecordingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ACE747A347F73749B564C2C /* RecordingCoordinator.swift */; };
+		7321456A65BBBFB45E585E42 /* ExportEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7968D386FA70039BF2855261 /* ExportEngine.swift */; };
+		748261633D0EA51C653D5618 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B9387AACF308DD189C20DD87 /* Assets.xcassets */; };
+		80121C8F96810172C9E583EB /* InspectorComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D462B3A262661F29D8AEA719 /* InspectorComponents.swift */; };
+		821B5F5B7E57B101ADFC0019 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530DBCA26D4D6A513B1F5581 /* EditorView.swift */; };
+		87099825D85DB72EE4E6D37A /* FrameApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFD2E6B72EFF28F0FD15770 /* FrameApp.swift */; };
+		8E7D489357B382F2E1E10CFE /* ToolbarItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CA60154BBFD793DE82EBA8 /* ToolbarItems.swift */; };
+		908DBB8A4EA1EE88957706FD /* ZoomEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B791A634BCAAEB6B5D572B69 /* ZoomEngine.swift */; };
+		9210E8E9964179D638EE99D7 /* VideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC9BA31FF13B3B87BC2B2A53 /* VideoPlayerView.swift */; };
+		9D1C4F48F1C55BDE23E03A3D /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33EE56E9E0FA48952E66A88E /* TimelineView.swift */; };
+		9EDB5C933F0EAE632129DC86 /* SourcePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 447909B73893B1B16C6AC844 /* SourcePicker.swift */; };
+		B54E81F35AF32FBE57ECE5C8 /* WebcamInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA002E72CBE0459094B5186A /* WebcamInspector.swift */; };
+		B63094B8407D21048982FAE1 /* ZoomInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1D7FB7BAC9248A4F7088C /* ZoomInspector.swift */; };
+		E07362BF274B4D5347EE0ED7 /* PlaybackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75D71B885375C89AD068111 /* PlaybackEngine.swift */; };
+		E7B519873B9C7189719B3727 /* WebcamOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6AF8E10E02234C3DC8EB79 /* WebcamOverlayView.swift */; };
+		ECE643B012AFD5E3744012D5 /* RecordingToolbarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF64E2264CECE9A459241E5 /* RecordingToolbarPanel.swift */; };
+		FAA8AA768601B4FD5CEBB0E3 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D2D678A52372391A8B3FC3 /* RecordingView.swift */; };
+		FB69D85D85F079C4DC834EE8 /* PreviewCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07E4178CF090EDE56BD68CE /* PreviewCanvas.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0108D09BBAE7279BD48F2766 /* KeystrokeOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeystrokeOverlayView.swift; sourceTree = "<group>"; };
+		06C1C6DCAE75A17A8FC3D5A3 /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
+		07079030A5C678F0E454F8A5 /* CursorRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorRecorder.swift; sourceTree = "<group>"; };
+		08DF2D7417D40EA46B150146 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		0D395FEC6B84A7070576A602 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		13122695FD91C0E361ADCE77 /* BackgroundInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundInspector.swift; sourceTree = "<group>"; };
+		21705F20EB300E04D2540878 /* Frame.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Frame.entitlements; sourceTree = "<group>"; };
+		33EE56E9E0FA48952E66A88E /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
+		3694BE04A7CBD8201C7867BC /* ExportConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportConfig.swift; sourceTree = "<group>"; };
+		389E0B431E77E80D8D8D132F /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
+		38E8844D2CF7061FA83F9825 /* CursorOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorOverlayView.swift; sourceTree = "<group>"; };
+		447909B73893B1B16C6AC844 /* SourcePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcePicker.swift; sourceTree = "<group>"; };
+		48B9204A06B8308AEF487BCD /* Frame.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Frame.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4ACE747A347F73749B564C2C /* RecordingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingCoordinator.swift; sourceTree = "<group>"; };
+		4DF64E2264CECE9A459241E5 /* RecordingToolbarPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingToolbarPanel.swift; sourceTree = "<group>"; };
+		530DBCA26D4D6A513B1F5581 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
+		630890366A72054798E58494 /* OverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayManager.swift; sourceTree = "<group>"; };
+		66CD6F1A35F981CDA30399FE /* KeyboardInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardInspector.swift; sourceTree = "<group>"; };
+		7968D386FA70039BF2855261 /* ExportEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportEngine.swift; sourceTree = "<group>"; };
+		7A6AF8E10E02234C3DC8EB79 /* WebcamOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamOverlayView.swift; sourceTree = "<group>"; };
+		7EB48CC089B42677C0959CB6 /* ScreenRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecorder.swift; sourceTree = "<group>"; };
+		8233C763F446AAC9416B1221 /* FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
+		854352E3DBCB89D1266ECEC9 /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
+		89C3F178A328471703458391 /* AudioInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInspector.swift; sourceTree = "<group>"; };
+		95837CDAAAA70B0C5883AC6A /* WebcamPreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamPreviewPanel.swift; sourceTree = "<group>"; };
+		A7CA60154BBFD793DE82EBA8 /* ToolbarItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarItems.swift; sourceTree = "<group>"; };
+		AA002E72CBE0459094B5186A /* WebcamInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamInspector.swift; sourceTree = "<group>"; };
+		B01F1F58999CBABB92873A62 /* RecordingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingConfig.swift; sourceTree = "<group>"; };
+		B07E4178CF090EDE56BD68CE /* PreviewCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewCanvas.swift; sourceTree = "<group>"; };
+		B26CCD748ABA095ECB09CB09 /* WebcamCaptureEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamCaptureEngine.swift; sourceTree = "<group>"; };
+		B66ADF7922AAF2F9259E94EA /* KeystrokeRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeystrokeRecorder.swift; sourceTree = "<group>"; };
+		B791A634BCAAEB6B5D572B69 /* ZoomEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomEngine.swift; sourceTree = "<group>"; };
+		B7D2D678A52372391A8B3FC3 /* RecordingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingView.swift; sourceTree = "<group>"; };
+		B9387AACF308DD189C20DD87 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D462B3A262661F29D8AEA719 /* InspectorComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorComponents.swift; sourceTree = "<group>"; };
+		D7A1D7FB7BAC9248A4F7088C /* ZoomInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomInspector.swift; sourceTree = "<group>"; };
+		E68E742B61ECCDFDDD0EFEE1 /* CursorInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorInspector.swift; sourceTree = "<group>"; };
+		F75D71B885375C89AD068111 /* PlaybackEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackEngine.swift; sourceTree = "<group>"; };
+		FAFBE2000E3071349117B60D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FBFD2E6B72EFF28F0FD15770 /* FrameApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameApp.swift; sourceTree = "<group>"; };
+		FC9BA31FF13B3B87BC2B2A53 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0D365B4A60E7EA17F7924872 = {
+			isa = PBXGroup;
+			children = (
+				96B1447DFCF1DE0FC7327042 /* Frame */,
+				6BC5D08A38AC189E3B0CBDED /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		201363C5908607A3A101B96D /* Editor */ = {
+			isa = PBXGroup;
+			children = (
+				4A35C46FC2D07D6C98783879 /* Inspector */,
+				38E8844D2CF7061FA83F9825 /* CursorOverlayView.swift */,
+				530DBCA26D4D6A513B1F5581 /* EditorView.swift */,
+				0108D09BBAE7279BD48F2766 /* KeystrokeOverlayView.swift */,
+				B07E4178CF090EDE56BD68CE /* PreviewCanvas.swift */,
+				33EE56E9E0FA48952E66A88E /* TimelineView.swift */,
+				7A6AF8E10E02234C3DC8EB79 /* WebcamOverlayView.swift */,
+			);
+			path = Editor;
+			sourceTree = "<group>";
+		};
+		2186AAEB6C41DCD3FDEB6ADA /* Recording */ = {
+			isa = PBXGroup;
+			children = (
+				B7D2D678A52372391A8B3FC3 /* RecordingView.swift */,
+				447909B73893B1B16C6AC844 /* SourcePicker.swift */,
+			);
+			path = Recording;
+			sourceTree = "<group>";
+		};
+		21AE3A5AFD07FA7437C39347 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A7CA60154BBFD793DE82EBA8 /* ToolbarItems.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		2FAD8258D3E8AEEFC8E59A79 /* Recording */ = {
+			isa = PBXGroup;
+			children = (
+				07079030A5C678F0E454F8A5 /* CursorRecorder.swift */,
+				B66ADF7922AAF2F9259E94EA /* KeystrokeRecorder.swift */,
+				4ACE747A347F73749B564C2C /* RecordingCoordinator.swift */,
+				7EB48CC089B42677C0959CB6 /* ScreenRecorder.swift */,
+				B26CCD748ABA095ECB09CB09 /* WebcamCaptureEngine.swift */,
+			);
+			path = Recording;
+			sourceTree = "<group>";
+		};
+		3DEB22D4CA3988FE7DB29F97 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				389E0B431E77E80D8D8D132F /* Project.swift */,
+				B01F1F58999CBABB92873A62 /* RecordingConfig.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		3F09E60C5E06A58F503601F9 /* Export */ = {
+			isa = PBXGroup;
+			children = (
+				06C1C6DCAE75A17A8FC3D5A3 /* ExportView.swift */,
+			);
+			path = Export;
+			sourceTree = "<group>";
+		};
+		4A35C46FC2D07D6C98783879 /* Inspector */ = {
+			isa = PBXGroup;
+			children = (
+				89C3F178A328471703458391 /* AudioInspector.swift */,
+				13122695FD91C0E361ADCE77 /* BackgroundInspector.swift */,
+				E68E742B61ECCDFDDD0EFEE1 /* CursorInspector.swift */,
+				D462B3A262661F29D8AEA719 /* InspectorComponents.swift */,
+				66CD6F1A35F981CDA30399FE /* KeyboardInspector.swift */,
+				AA002E72CBE0459094B5186A /* WebcamInspector.swift */,
+				D7A1D7FB7BAC9248A4F7088C /* ZoomInspector.swift */,
+			);
+			path = Inspector;
+			sourceTree = "<group>";
+		};
+		604BB126CC04C62F2C55B4AE /* Playback */ = {
+			isa = PBXGroup;
+			children = (
+				F75D71B885375C89AD068111 /* PlaybackEngine.swift */,
+				FC9BA31FF13B3B87BC2B2A53 /* VideoPlayerView.swift */,
+			);
+			path = Playback;
+			sourceTree = "<group>";
+		};
+		610FF7D055437766C073C304 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				08DF2D7417D40EA46B150146 /* AppState.swift */,
+				FBFD2E6B72EFF28F0FD15770 /* FrameApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		67333C7BA281D720521A8176 /* Effects */ = {
+			isa = PBXGroup;
+			children = (
+				B791A634BCAAEB6B5D572B69 /* ZoomEngine.swift */,
+			);
+			path = Effects;
+			sourceTree = "<group>";
+		};
+		67DE04386A3C2840A2736315 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				854352E3DBCB89D1266ECEC9 /* Permissions.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		6BC5D08A38AC189E3B0CBDED /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				48B9204A06B8308AEF487BCD /* Frame.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		70D21E10F3F8C7CE79D416A8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B9387AACF308DD189C20DD87 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		96B1447DFCF1DE0FC7327042 /* Frame */ = {
+			isa = PBXGroup;
+			children = (
+				610FF7D055437766C073C304 /* App */,
+				67333C7BA281D720521A8176 /* Effects */,
+				AB5A3241196EC1636835A248 /* Export */,
+				3DEB22D4CA3988FE7DB29F97 /* Models */,
+				EF19B8386391431C88245184 /* Overlay */,
+				604BB126CC04C62F2C55B4AE /* Playback */,
+				2FAD8258D3E8AEEFC8E59A79 /* Recording */,
+				70D21E10F3F8C7CE79D416A8 /* Resources */,
+				67DE04386A3C2840A2736315 /* Utilities */,
+				AF1853A705000F13C3F8300D /* Views */,
+				21705F20EB300E04D2540878 /* Frame.entitlements */,
+				0D395FEC6B84A7070576A602 /* Info.plist */,
+			);
+			path = Frame;
+			sourceTree = "<group>";
+		};
+		AB5A3241196EC1636835A248 /* Export */ = {
+			isa = PBXGroup;
+			children = (
+				3694BE04A7CBD8201C7867BC /* ExportConfig.swift */,
+				7968D386FA70039BF2855261 /* ExportEngine.swift */,
+			);
+			path = Export;
+			sourceTree = "<group>";
+		};
+		AF1853A705000F13C3F8300D /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				201363C5908607A3A101B96D /* Editor */,
+				3F09E60C5E06A58F503601F9 /* Export */,
+				2186AAEB6C41DCD3FDEB6ADA /* Recording */,
+				21AE3A5AFD07FA7437C39347 /* Shared */,
+				FAFBE2000E3071349117B60D /* ContentView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		EF19B8386391431C88245184 /* Overlay */ = {
+			isa = PBXGroup;
+			children = (
+				8233C763F446AAC9416B1221 /* FloatingPanel.swift */,
+				630890366A72054798E58494 /* OverlayManager.swift */,
+				4DF64E2264CECE9A459241E5 /* RecordingToolbarPanel.swift */,
+				95837CDAAAA70B0C5883AC6A /* WebcamPreviewPanel.swift */,
+			);
+			path = Overlay;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F492D1DF3447D0CC3D2979C3 /* Frame */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3B0FCE0F51100975D687CFA0 /* Build configuration list for PBXNativeTarget "Frame" */;
+			buildPhases = (
+				F7BC3B831736BB0354C06F07 /* Sources */,
+				35F3572E9A36A3D965C6B9E2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Frame;
+			packageProductDependencies = (
+			);
+			productName = Frame;
+			productReference = 48B9204A06B8308AEF487BCD /* Frame.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		459E011A975234396783CB42 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 81E7F39BA4DFE0ABAC70FF61 /* Build configuration list for PBXProject "Frame" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0D365B4A60E7EA17F7924872;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F492D1DF3447D0CC3D2979C3 /* Frame */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		35F3572E9A36A3D965C6B9E2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				748261633D0EA51C653D5618 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F7BC3B831736BB0354C06F07 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				132F7DD49BF30FD6716CE5CC /* AppState.swift in Sources */,
+				5E8E6E57E194FAE5B31C07FD /* AudioInspector.swift in Sources */,
+				44A0CAEE479E42D60CC58369 /* BackgroundInspector.swift in Sources */,
+				148DCF9EA9A1413EA9925572 /* ContentView.swift in Sources */,
+				2AA15B38918DCD207451BCA0 /* CursorInspector.swift in Sources */,
+				296A74714EEF72AADD00A32D /* CursorOverlayView.swift in Sources */,
+				701FDD37077D41DBF6A4C864 /* CursorRecorder.swift in Sources */,
+				821B5F5B7E57B101ADFC0019 /* EditorView.swift in Sources */,
+				56EA02E4257412565FF00041 /* ExportConfig.swift in Sources */,
+				7321456A65BBBFB45E585E42 /* ExportEngine.swift in Sources */,
+				5F784FB0149DB29DEA464595 /* ExportView.swift in Sources */,
+				04788390E72D32D2CEDAB0C2 /* FloatingPanel.swift in Sources */,
+				87099825D85DB72EE4E6D37A /* FrameApp.swift in Sources */,
+				80121C8F96810172C9E583EB /* InspectorComponents.swift in Sources */,
+				0ED302239378EC74F7C839A1 /* KeyboardInspector.swift in Sources */,
+				14303987201864FAB4F39FE9 /* KeystrokeOverlayView.swift in Sources */,
+				00D768A48B87C6BC5A92C053 /* KeystrokeRecorder.swift in Sources */,
+				51CEEED7A8F8B80B1E467D1F /* OverlayManager.swift in Sources */,
+				6666A8761D6A7225EF31AF6F /* Permissions.swift in Sources */,
+				E07362BF274B4D5347EE0ED7 /* PlaybackEngine.swift in Sources */,
+				FB69D85D85F079C4DC834EE8 /* PreviewCanvas.swift in Sources */,
+				37A7AD9C35B139A399E5C893 /* Project.swift in Sources */,
+				12702BA61EC7CC54814A4523 /* RecordingConfig.swift in Sources */,
+				72F500F84AE2E09A0D850B94 /* RecordingCoordinator.swift in Sources */,
+				ECE643B012AFD5E3744012D5 /* RecordingToolbarPanel.swift in Sources */,
+				FAA8AA768601B4FD5CEBB0E3 /* RecordingView.swift in Sources */,
+				6C1B26A964DDC8734B20B2CA /* ScreenRecorder.swift in Sources */,
+				9EDB5C933F0EAE632129DC86 /* SourcePicker.swift in Sources */,
+				9D1C4F48F1C55BDE23E03A3D /* TimelineView.swift in Sources */,
+				8E7D489357B382F2E1E10CFE /* ToolbarItems.swift in Sources */,
+				9210E8E9964179D638EE99D7 /* VideoPlayerView.swift in Sources */,
+				14E4BEAF96713BB76B8DCDA6 /* WebcamCaptureEngine.swift in Sources */,
+				B54E81F35AF32FBE57ECE5C8 /* WebcamInspector.swift in Sources */,
+				E7B519873B9C7189719B3727 /* WebcamOverlayView.swift in Sources */,
+				2CB13829D7FBC83CF91CFD12 /* WebcamPreviewPanel.swift in Sources */,
+				908DBB8A4EA1EE88957706FD /* ZoomEngine.swift in Sources */,
+				B63094B8407D21048982FAE1 /* ZoomInspector.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1B5A39409B7FAD8203321D02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		3D6C97940664A75728C0E2E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Frame/Frame.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = Frame/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.frame.app;
+				PRODUCT_NAME = Frame;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+			};
+			name = Debug;
+		};
+		CEAC741059CF2FC0E9996B45 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Frame/Frame.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = Frame/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.frame.app;
+				PRODUCT_NAME = Frame;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+			};
+			name = Release;
+		};
+		D09A5A3A2CE0E6EAAAB5EC84 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3B0FCE0F51100975D687CFA0 /* Build configuration list for PBXNativeTarget "Frame" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3D6C97940664A75728C0E2E0 /* Debug */,
+				CEAC741059CF2FC0E9996B45 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		81E7F39BA4DFE0ABAC70FF61 /* Build configuration list for PBXProject "Frame" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D09A5A3A2CE0E6EAAAB5EC84 /* Debug */,
+				1B5A39409B7FAD8203321D02 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 459E011A975234396783CB42 /* Project object */;
+}

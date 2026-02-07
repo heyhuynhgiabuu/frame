@@ -1,7 +1,12 @@
-/target
-**/*.rs.bk
-Cargo.lock
+# Build outputs
 *.log
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
 
 # IDE
 .idea/
@@ -29,9 +34,14 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Rust build output
+/target/
+
 # Frame specific
-/apps/desktop/recordings/
-/apps/desktop/projects/
+/apps/desktop-swift/recordings/
+/apps/desktop-swift/projects/
+recording.mp4
+screenshoot/
 
 # opencode
 .opencode

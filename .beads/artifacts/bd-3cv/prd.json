@@ -1,0 +1,86 @@
+{
+  "beadId": "bd-3cv",
+  "prdName": "fix-recording-freeze",
+  "tasks": [
+    {
+      "id": "bug-fix-1",
+      "category": "bug-fix",
+      "title": "Move AVCaptureSession.startRunning off main thread",
+      "description": "WebcamCaptureEngine.start() dispatches session.startRunning() to the dedicated outputQueue using withCheckedContinuation, then updates isRunning on @MainActor.",
+      "steps": [
+        "Build succeeds: xcodebuild -project apps/desktop-swift/Frame.xcodeproj -scheme Frame build",
+        "Run app with webcam enabled, click Record Now — no freeze, UI stays responsive",
+        "Recording with webcam produces valid .mov video with webcam bubble overlay"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": ["Move AVCaptureSession.stopRunning off main thread"],
+        "files": ["apps/desktop-swift/Frame/Recording/WebcamCaptureEngine.swift"]
+      }
+    },
+    {
+      "id": "bug-fix-2",
+      "category": "bug-fix",
+      "title": "Move AVCaptureSession.stopRunning off main thread",
+      "description": "WebcamCaptureEngine.stop() dispatches session.stopRunning() to the dedicated outputQueue using withCheckedContinuation, then updates state on @MainActor. stop() becomes async.",
+      "steps": [
+        "Build succeeds with zero errors",
+        "Click stop recording — no freeze, transitions to editor smoothly",
+        "All call sites of stop() updated to handle async (AppState)"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["Move AVCaptureSession.startRunning off main thread"],
+        "parallel": false,
+        "conflicts_with": ["Move AVCaptureSession.startRunning off main thread"],
+        "files": ["apps/desktop-swift/Frame/Recording/WebcamCaptureEngine.swift"]
+      }
+    },
+    {
+      "id": "bug-fix-3",
+      "category": "bug-fix",
+      "title": "Move SCStream.startCapture off main actor",
+      "description": "ScreenRecorder.startRecording() wraps captureStream.startCapture() in Task.detached(priority: .userInitiated) to avoid blocking the main actor, then updates state on @MainActor.",
+      "steps": [
+        "Build succeeds with zero errors",
+        "Run app without webcam, click Record Now — no freeze, UI stays responsive",
+        "Screen recording produces valid .mov file",
+        "Error handling still works: deny permission → error alert shown, not freeze"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["apps/desktop-swift/Frame/Recording/ScreenRecorder.swift"]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "WebcamCaptureEngine.outputQueue: dedicated DispatchQueue(.userInteractive) already exists for delegate callbacks",
+      "withCheckedContinuation: Swift pattern for bridging DispatchQueue → async/await",
+      "Task.detached: Swift pattern for escaping @MainActor isolation"
+    ],
+    "keyFiles": [
+      "apps/desktop-swift/Frame/Recording/WebcamCaptureEngine.swift",
+      "apps/desktop-swift/Frame/Recording/ScreenRecorder.swift",
+      "apps/desktop-swift/Frame/Recording/RecordingCoordinator.swift",
+      "apps/desktop-swift/Frame/App/AppState.swift"
+    ],
+    "nonGoals": [
+      "Refactoring OverlayManager panel creation",
+      "Adding loading indicators",
+      "Changing webcam compositing pipeline"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": [],
+    "parallel": true,
+    "conflicts_with": ["bd-317"],
+    "blocks": [],
+    "estimated_hours": 2
+  }
+}
