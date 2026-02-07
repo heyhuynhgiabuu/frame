@@ -8,8 +8,11 @@ struct Project: Identifiable {
     var createdAt: Date
     var modifiedAt: Date
 
-    /// Path to the raw recording file (.mov)
+    /// Path to the raw screen recording file (.mov)
     var recordingURL: URL?
+
+    /// Path to the separate webcam recording file (.mov), if webcam was active
+    var webcamRecordingURL: URL?
 
     /// Path to the project directory (.frame/)
     var projectDirectoryURL: URL?

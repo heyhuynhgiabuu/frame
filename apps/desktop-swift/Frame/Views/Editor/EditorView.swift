@@ -60,6 +60,7 @@ struct EditorView: View {
                     player: appState.playbackEngine.player,
                     effects: project.effects,
                     isReady: appState.playbackEngine.isReady,
+                    loadError: appState.playbackEngine.loadError,
                     cursorEvents: appState.cursorEvents,
                     currentTime: appState.playbackEngine.currentTime,
                     videoSize: CGSize(
@@ -67,6 +68,7 @@ struct EditorView: View {
                         height: CGFloat(project.resolutionHeight)
                     ),
                     webcamImage: appState.webcamImage,
+                    webcamPlayer: appState.webcamPlayer,
                     zoomState: appState.zoomEngine.currentZoom,
                     keystrokeEvents: appState.keystrokeEvents
                 )

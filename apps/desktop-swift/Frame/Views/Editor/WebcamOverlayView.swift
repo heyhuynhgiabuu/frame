@@ -3,20 +3,29 @@ import CoreImage
 import AVFoundation
 
 /// Renders a webcam PiP overlay in the specified corner of the preview canvas.
-/// Converts CIImage frames from WebcamCaptureEngine to a displayable NSImage.
+/// Supports two modes:
+/// - Live preview: Shows NSImage from WebcamCaptureEngine (during recording)
+/// - Playback: Shows recorded webcam video via AVPlayer (in editor mode)
 struct WebcamOverlayView: View {
     let effects: EffectsConfig
     let webcamImage: NSImage?
+    let webcamPlayer: AVPlayer?
     let containerSize: CGSize
 
     private static let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
+    init(effects: EffectsConfig, webcamImage: NSImage? = nil, webcamPlayer: AVPlayer? = nil, containerSize: CGSize) {
+        self.effects = effects
+        self.webcamImage = webcamImage
+        self.webcamPlayer = webcamPlayer
+        self.containerSize = containerSize
+    }
+
     var body: some View {
-        if effects.webcamEnabled, let image = webcamImage {
+        if effects.webcamEnabled, hasContent {
             let pipSize = computePiPSize()
 
-            Image(nsImage: image)
-                .resizable()
+            webcamContent
                 .aspectRatio(contentMode: .fill)
                 .frame(width: pipSize.width, height: pipSize.height)
                 .clipShape(clipShape(for: pipSize))
@@ -30,6 +39,24 @@ struct WebcamOverlayView: View {
                     maxHeight: .infinity,
                     alignment: webcamAlignment
                 )
+        }
+    }
+
+    // MARK: - Content
+
+    private var hasContent: Bool {
+        webcamImage != nil || webcamPlayer != nil
+    }
+
+    @ViewBuilder
+    private var webcamContent: some View {
+        if let player = webcamPlayer {
+            // Editor mode: play recorded webcam video
+            VideoPlayerView(player: player)
+        } else if let image = webcamImage {
+            // Live mode: show current webcam frame
+            Image(nsImage: image)
+                .resizable()
         }
     }
 

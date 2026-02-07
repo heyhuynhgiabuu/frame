@@ -14,6 +14,7 @@ final class PlaybackEngine: ObservableObject {
     @Published private(set) var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var isReady = false
+    @Published private(set) var loadError: String?
 
     /// Normalized progress 0...1 for timeline binding
     var progress: Double {
@@ -52,6 +53,14 @@ final class PlaybackEngine: ObservableObject {
         currentTime = 0
         duration = 0
         isReady = false
+        loadError = nil
+
+        // Verify file exists and has content
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            logger.error("Video file does not exist: \(url.path)")
+            loadError = "Video file not found"
+            return
+        }
 
         // Create new player item
         let asset = AVURLAsset(url: url)
@@ -66,11 +75,14 @@ final class PlaybackEngine: ObservableObject {
                 switch item.status {
                 case .readyToPlay:
                     self.isReady = true
+                    self.loadError = nil
                     self.duration = item.duration.seconds.isFinite ? item.duration.seconds : 0
                     logger.info("Video ready — duration: \(self.duration)s")
                 case .failed:
-                    logger.error("Player item failed: \(item.error?.localizedDescription ?? "unknown")")
+                    let errorMsg = item.error?.localizedDescription ?? "unknown error"
+                    logger.error("Player item failed: \(errorMsg)")
                     self.isReady = false
+                    self.loadError = errorMsg
                 default:
                     break
                 }

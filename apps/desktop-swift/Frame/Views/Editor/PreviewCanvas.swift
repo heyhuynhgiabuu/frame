@@ -6,10 +6,12 @@ struct PreviewCanvas: View {
     let player: AVPlayer
     let effects: EffectsConfig
     let isReady: Bool
+    var loadError: String?
     var cursorEvents: [CursorEvent] = []
     var currentTime: TimeInterval = 0
     var videoSize: CGSize = CGSize(width: 1920, height: 1080)
     var webcamImage: NSImage?
+    var webcamPlayer: AVPlayer?
     var zoomState: ZoomEngine.ZoomState = ZoomEngine.ZoomState()
     var keystrokeEvents: [KeystrokeEvent] = []
 
@@ -90,14 +92,19 @@ struct PreviewCanvas: View {
                 }
 
             // Webcam PiP overlay
-            WebcamOverlayView(
-                effects: effects,
-                webcamImage: webcamImage,
-                containerSize: CGSize(
-                    width: videoSize.width + effects.padding * 2,
-                    height: videoSize.height + effects.padding * 2
+            // In editor mode: uses webcamPlayer (plays recorded webcam .mov, synced with main video)
+            // In recorder mode: uses webcamImage (live preview from capture engine)
+            if webcamPlayer != nil || webcamImage != nil {
+                WebcamOverlayView(
+                    effects: effects,
+                    webcamImage: webcamImage,
+                    webcamPlayer: webcamPlayer,
+                    containerSize: CGSize(
+                        width: videoSize.width + effects.padding * 2,
+                        height: videoSize.height + effects.padding * 2
+                    )
                 )
-            )
+            }
 
             // Keystroke overlay
             KeystrokeOverlayView(
@@ -106,8 +113,22 @@ struct PreviewCanvas: View {
                 currentTime: currentTime
             )
 
-            // Loading overlay
-            if !isReady {
+            // Loading / error overlay
+            if let loadError {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 36))
+                        .foregroundStyle(.yellow)
+                    Text("Failed to load video")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text(loadError)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 300)
+                }
+            } else if !isReady {
                 ProgressView("Loading…")
                     .foregroundStyle(.white)
             }

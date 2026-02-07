@@ -58,7 +58,7 @@ struct RecordingView: View {
     private var previewArea: some View {
         VStack(spacing: 16) {
             // Permission warning banner
-            if appState.coordinator.screenRecorder.permissionDenied {
+            if appState.screenRecordingPermissionDenied {
                 permissionBanner
             }
 
@@ -180,6 +180,7 @@ struct RecordingView: View {
         .buttonStyle(.borderedProminent)
         .tint(appState.isRecording ? .red : .blue)
         .controlSize(.large)
+        .disabled(appState.screenRecordingPermissionDenied && !appState.isRecording)
     }
 
     // MARK: - Helpers

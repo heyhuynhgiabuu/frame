@@ -8,6 +8,8 @@ import QuartzCore
 private let logger = Logger(subsystem: "com.frame.app", category: "ScreenRecorder")
 
 /// Core screen recording engine using ScreenCaptureKit + AVAssetWriter.
+/// Records screen-only video (no webcam compositing).
+/// Webcam is recorded separately by WebcamCaptureEngine.
 @MainActor
 final class ScreenRecorder: NSObject, ObservableObject {
 
@@ -21,6 +23,9 @@ final class ScreenRecorder: NSObject, ObservableObject {
     @Published var availableDisplays: [SCDisplay] = []
     @Published var availableWindows: [SCWindow] = []
 
+    /// All running applications (needed for includingApplications filter)
+    private var availableApplications: [SCRunningApplication] = []
+
     /// Whether screen recording permission appears to be denied
     @Published var permissionDenied = false
 
@@ -30,19 +35,13 @@ final class ScreenRecorder: NSObject, ObservableObject {
     private var streamOutput: RecordingStreamOutput?
     private var assetWriter: AVAssetWriter?
     private var videoInput: AVAssetWriterInput?
-    private var audioInput: AVAssetWriterInput?
+    private var systemAudioInput: AVAssetWriterInput?
+    private var micAudioInput: AVAssetWriterInput?
     private var durationTimer: Timer?
     private var startTime: Date?
 
     /// Output file URL for the current recording
     private(set) var outputURL: URL?
-
-    /// External webcam frame provider for real-time compositing.
-    /// Set this before starting recording to composite webcam into the video.
-    var webcamFrameProvider: (() -> WebcamFrameSnapshot?)?
-
-    /// Webcam overlay configuration.
-    var webcamConfig: WebcamOverlayConfig?
 
     // MARK: - Refresh Available Content
 
@@ -50,6 +49,7 @@ final class ScreenRecorder: NSObject, ObservableObject {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
             availableDisplays = content.displays
+            availableApplications = content.applications
             availableWindows = content.windows.filter { window in
                 // Filter out system windows and our own app
                 guard let app = window.owningApplication else { return false }
@@ -97,7 +97,14 @@ final class ScreenRecorder: NSObject, ObservableObject {
                 throw RecordingError.noDisplayAvailable
             }
             display = selectedDisplay
-            filter = SCContentFilter(display: selectedDisplay, excludingApplications: [], exceptingWindows: [])
+            // Use includingApplications instead of excludingApplications.
+            // An empty excludingApplications array is known to cause SCStream failures
+            // on some macOS versions, especially with system audio capture enabled.
+            // We include all running apps except our own (to avoid capturing our own UI/audio).
+            let appsToInclude = availableApplications.filter {
+                $0.bundleIdentifier != Bundle.main.bundleIdentifier
+            }
+            filter = SCContentFilter(display: selectedDisplay, including: appsToInclude, exceptingWindows: [])
 
         case .window:
             guard let selectedWindow = config.selectedWindow else {
@@ -122,8 +129,6 @@ final class ScreenRecorder: NSObject, ObservableObject {
         let captureSystemAudio = config.captureSystemAudio
         let captureMicrophone = config.captureMicrophone
         let frameRate = config.frameRate
-        let webcamFrameProvider = self.webcamFrameProvider
-        let webcamConfig = self.webcamConfig
 
         // Run the entire AVAssetWriter + SCStream setup off the main actor.
         // This prevents blocking the UI while the capture pipeline initialises
@@ -150,56 +155,94 @@ final class ScreenRecorder: NSObject, ObservableObject {
             }
             writer.add(vInput)
 
-            // Audio input (if capturing audio)
-            var aInput: AVAssetWriterInput?
-            if captureSystemAudio || captureMicrophone {
-                let audioSettings: [String: Any] = [
+            // Audio inputs — SEPARATE inputs for system audio vs microphone.
+            // System audio arrives as 2-channel stereo; microphone arrives as 1-channel mono.
+            // Writing both formats to a single AVAssetWriterInput corrupts the encoder
+            // (format mismatch → writer enters .failed state at frame #3).
+            var sysAudioInput: AVAssetWriterInput?
+            var micInput: AVAssetWriterInput?
+
+            if captureSystemAudio {
+                let systemAudioSettings: [String: Any] = [
                     AVFormatIDKey: kAudioFormatMPEG4AAC,
                     AVSampleRateKey: 48000,
                     AVNumberOfChannelsKey: 2,
                     AVEncoderBitRateKey: 192000,
                 ]
-                let audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
-                audioInput.expectsMediaDataInRealTime = true
-                guard writer.canAdd(audioInput) else {
+                let input = AVAssetWriterInput(mediaType: .audio, outputSettings: systemAudioSettings)
+                input.expectsMediaDataInRealTime = true
+                guard writer.canAdd(input) else {
                     throw RecordingError.writerNotReady
                 }
-                writer.add(audioInput)
-                aInput = audioInput
+                writer.add(input)
+                sysAudioInput = input
             }
 
-            // IMPORTANT: Create RecordingStreamOutput BEFORE calling startWriting().
+            if captureMicrophone {
+                let micAudioSettings: [String: Any] = [
+                    AVFormatIDKey: kAudioFormatMPEG4AAC,
+                    AVSampleRateKey: 48000,
+                    AVNumberOfChannelsKey: 1,
+                    AVEncoderBitRateKey: 96000,
+                ]
+                let input = AVAssetWriterInput(mediaType: .audio, outputSettings: micAudioSettings)
+                input.expectsMediaDataInRealTime = true
+                guard writer.canAdd(input) else {
+                    throw RecordingError.writerNotReady
+                }
+                writer.add(input)
+                micInput = input
+            }
+
+            // Create RecordingStreamOutput BEFORE calling startWriting().
             // AVAssetWriterInputPixelBufferAdaptor requires the writer to be in .unknown status.
-            // Creating it after startWriting() throws an ObjC exception that bypasses Swift error handling.
             let output = RecordingStreamOutput(
                 assetWriter: writer,
                 videoInput: vInput,
-                audioInput: aInput,
-                webcamFrameProvider: webcamFrameProvider,
-                webcamConfig: webcamConfig
+                systemAudioInput: sysAudioInput,
+                micAudioInput: micInput
             )
 
-            // Now safe to start writing — all inputs and adaptor are configured
-            writer.startWriting()
+            // Now safe to start writing — all inputs are configured
+            guard writer.startWriting() else {
+                let errorDesc = writer.error?.localizedDescription ?? "unknown"
+                logger.error("AVAssetWriter.startWriting() failed: \(errorDesc)")
+                throw RecordingError.writerNotReady
+            }
+            logger.info("AVAssetWriter started writing successfully (status=\(writer.status.rawValue))")
 
             // Create and start SCStream
-            let captureStream = SCStream(filter: filter, configuration: streamConfig, delegate: nil)
-            try captureStream.addStreamOutput(output, type: .screen, sampleHandlerQueue: .global(qos: .userInitiated))
+            // CRITICAL: Each output type MUST use a separate serial queue.
+            // Using a shared concurrent queue (.global) causes data races on
+            // isFirstVideoSample/firstSampleTime and can corrupt AVAssetWriter
+            // state (double startSession calls → writer enters .failed state).
+            let videoQueue = DispatchQueue(label: "dev.frame.scstream.video", qos: .userInteractive)
+            let audioQueue = DispatchQueue(label: "dev.frame.scstream.audio", qos: .userInteractive)
+            let micQueue = DispatchQueue(label: "dev.frame.scstream.mic", qos: .userInteractive)
+
+            let captureStream = SCStream(filter: filter, configuration: streamConfig, delegate: output)
+            try captureStream.addStreamOutput(output, type: .screen, sampleHandlerQueue: videoQueue)
             if captureSystemAudio {
-                try captureStream.addStreamOutput(output, type: .audio, sampleHandlerQueue: .global(qos: .userInitiated))
+                try captureStream.addStreamOutput(output, type: .audio, sampleHandlerQueue: audioQueue)
+            }
+            if captureMicrophone {
+                if #available(macOS 15.0, *) {
+                    try captureStream.addStreamOutput(output, type: .microphone, sampleHandlerQueue: micQueue)
+                }
             }
 
             try await captureStream.startCapture()
 
-            return (writer, vInput, aInput, output, captureStream)
+            return (writer, vInput, sysAudioInput, micInput, output, captureStream)
         }.value
 
         // Back on @MainActor — assign state
         self.assetWriter = result.0
         self.videoInput = result.1
-        self.audioInput = result.2
-        self.streamOutput = result.3
-        self.stream = result.4
+        self.systemAudioInput = result.2
+        self.micAudioInput = result.3
+        self.streamOutput = result.4
+        self.stream = result.5
 
         // Update state
         isRecording = true
@@ -247,7 +290,14 @@ final class ScreenRecorder: NSObject, ObservableObject {
         }
 
         videoInput = nil
-        audioInput = nil
+        systemAudioInput = nil
+        micAudioInput = nil
+
+        // Remove empty/invalid output file
+        if let outputURL {
+            try? FileManager.default.removeItem(at: outputURL)
+            self.outputURL = nil
+        }
     }
 
     // MARK: - Stop Recording
@@ -271,19 +321,70 @@ final class ScreenRecorder: NSObject, ObservableObject {
         }
         self.stream = nil
 
-        // Finalize asset writer
-        videoInput?.markAsFinished()
-        audioInput?.markAsFinished()
+        // Finalize asset writer on the writerQueue to avoid races with pending appends.
+        // This mirrors WebcamCaptureEngine's finalization pattern.
+        if let output = streamOutput {
+            let (vFrames, aFrames, sessionStarted) = output.stats
+            logger.info("Recording stats — video frames: \(vFrames), audio frames: \(aFrames), session started: \(sessionStarted)")
+            if let streamErr = output.streamError {
+                logger.error("[SCStream] Stream error during recording: \(streamErr.localizedDescription)")
+            }
+        }
 
-        if let writer = assetWriter, writer.status == .writing {
-            await writer.finishWriting()
-            logger.info("Recording saved: \(self.outputURL?.lastPathComponent ?? "unknown")")
+        if let writer = assetWriter {
+            // Capture @MainActor-isolated properties before entering the non-isolated closure.
+            // These are safe to use on writerQueue because the SCStream has already been stopped,
+            // so no more callbacks will access the writer concurrently.
+            let videoIn = videoInput
+            let sysAudioIn = systemAudioInput
+            let micAudioIn = micAudioInput
+            nonisolated(unsafe) let unsafeWriter = writer
+
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                // streamOutput holds writerQueue — dispatch finalization there
+                // so any in-flight appends complete before we finalize.
+                let writerQueue = streamOutput?.writerQueueForFinalization
+                    ?? DispatchQueue(label: "dev.frame.recording.writer.finalize")
+
+                writerQueue.async {
+                    videoIn?.markAsFinished()
+                    sysAudioIn?.markAsFinished()
+                    micAudioIn?.markAsFinished()
+
+                    guard unsafeWriter.status == .writing else {
+                        logger.warning("AVAssetWriter not in writing state (status=\(unsafeWriter.status.rawValue)), cannot finalize")
+                        continuation.resume()
+                        return
+                    }
+
+                    unsafeWriter.finishWriting {
+                        if unsafeWriter.status == .completed {
+                            logger.info("Recording saved successfully")
+                        } else {
+                            logger.error("AVAssetWriter finished with status \(unsafeWriter.status.rawValue), error: \(unsafeWriter.error?.localizedDescription ?? "none")")
+                        }
+                        continuation.resume()
+                    }
+                }
+            }
         }
 
         // Reset state
         isRecording = false
         isPaused = false
         streamOutput = nil
+
+        // Only return URL if writer completed successfully
+        guard let writer = assetWriter, writer.status == .completed else {
+            let status = assetWriter?.status.rawValue ?? -1
+            let writerErr = assetWriter?.error?.localizedDescription ?? "none"
+            logger.error("Recording file invalid — writer status: \(status), error: \(writerErr)")
+            // Clean up invalid/empty output file
+            if let outputURL {
+                try? FileManager.default.removeItem(at: outputURL)
+            }
+            return nil
+        }
 
         let url = outputURL
         return url
@@ -302,7 +403,15 @@ final class ScreenRecorder: NSObject, ObservableObject {
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = formatter.string(from: Date())
 
-        return frameDir.appendingPathComponent("Frame_\(timestamp).mov")
+        // AVAssetWriter fails if file already exists — ensure unique filename
+        var url = frameDir.appendingPathComponent("Frame_\(timestamp).mov")
+        var counter = 1
+        while FileManager.default.fileExists(atPath: url.path) {
+            url = frameDir.appendingPathComponent("Frame_\(timestamp)_\(counter).mov")
+            counter += 1
+        }
+
+        return url
     }
 }
 
@@ -314,7 +423,6 @@ enum RecordingError: LocalizedError {
     case noWindowSelected
     case writerNotReady
     case alreadyRecording
-    case webcamFrameUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -323,7 +431,6 @@ enum RecordingError: LocalizedError {
         case .noWindowSelected: return "No window selected for recording"
         case .writerNotReady: return "Video writer is not ready"
         case .alreadyRecording: return "Already recording"
-        case .webcamFrameUnavailable: return "Webcam is enabled but no live webcam frames are available"
         }
     }
 
@@ -334,150 +441,123 @@ enum RecordingError: LocalizedError {
             return "Please enable Screen Recording in System Settings → Privacy & Security → Screen Recording, then restart Frame."
         case .noDisplayAvailable:
             return "No displays were found. This can happen if screen recording permission was just granted — macOS requires an app restart for the change to take effect."
-        case .webcamFrameUnavailable:
-            return "Frame needs a live webcam feed before recording. Check camera permission and that webcam preview is moving, then try again."
         default:
             return nil
         }
     }
 }
 
-// MARK: - Webcam Overlay Config
-
-/// Configuration for compositing webcam onto screen recording in real-time.
-struct WebcamOverlayConfig {
-    let position: WebcamPosition
-    let size: Double           // Relative to video width (0.1 - 0.4)
-    let shape: WebcamShape
-    let padding: Double        // Points from edge
-
-    init(position: WebcamPosition = .bottomLeft, size: Double = 0.2, shape: WebcamShape = .circle, padding: Double = 24) {
-        self.position = position
-        self.size = size
-        self.shape = shape
-        self.padding = padding
-    }
-}
-
 // MARK: - Stream Output Handler
 
-private class RecordingStreamOutput: NSObject, SCStreamOutput {
+private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate {
     private let assetWriter: AVAssetWriter
     private let videoInput: AVAssetWriterInput
-    private let audioInput: AVAssetWriterInput?
-    private let pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
+    private let systemAudioInput: AVAssetWriterInput?
+    private let micAudioInput: AVAssetWriterInput?
 
-    private var isFirstVideoSample = true
+    /// Serial queue that serializes ALL AVAssetWriter operations (startSession, append, stats).
+    /// Video and audio callbacks arrive on different SCStream queues — without serialization,
+    /// concurrent `append()` calls corrupt the writer and push it into `.failed` state.
+    /// This mirrors WebcamCaptureEngine.writerQueue.
+    private let writerQueue = DispatchQueue(label: "dev.frame.recording.writer", qos: .userInitiated)
+    private var isSessionStarted = false
     private var firstSampleTime: CMTime = .zero
+    private var videoFrameCount = 0
+    private var audioFrameCount = 0
+    /// Error reported by SCStreamDelegate when the stream stops unexpectedly
+    private(set) var streamError: Error?
 
-    /// Thread-safe webcam frame provider
-    private let webcamFrameProvider: (() -> WebcamFrameSnapshot?)?
-    private let webcamConfig: WebcamOverlayConfig?
-    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
-    private var lastGoodWebcamFrame: CIImage?
-    private var lastGoodWebcamTimestamp: CFTimeInterval = 0
-    private let webcamFrameGraceWindow: CFTimeInterval = 0.15
-
-    init(assetWriter: AVAssetWriter, videoInput: AVAssetWriterInput, audioInput: AVAssetWriterInput?,
-         webcamFrameProvider: (() -> WebcamFrameSnapshot?)?, webcamConfig: WebcamOverlayConfig?) {
+    init(assetWriter: AVAssetWriter, videoInput: AVAssetWriterInput, systemAudioInput: AVAssetWriterInput?, micAudioInput: AVAssetWriterInput?) {
         self.assetWriter = assetWriter
         self.videoInput = videoInput
-        self.audioInput = audioInput
-        self.webcamFrameProvider = webcamFrameProvider
-        self.webcamConfig = webcamConfig
-
-        // Create pixel buffer adaptor for composited output
-        if webcamFrameProvider != nil {
-            let attrs: [String: Any] = [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-            ]
-            self.pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
-                assetWriterInput: videoInput,
-                sourcePixelBufferAttributes: attrs
-            )
-        } else {
-            self.pixelBufferAdaptor = nil
-        }
-
+        self.systemAudioInput = systemAudioInput
+        self.micAudioInput = micAudioInput
         super.init()
     }
 
+    /// Thread-safe stats for diagnostics
+    var stats: (videoFrames: Int, audioFrames: Int, sessionStarted: Bool) {
+        writerQueue.sync { (videoFrameCount, audioFrameCount, isSessionStarted) }
+    }
+
+    /// Expose writerQueue for finalization — ensures pending appends drain before markAsFinished/finishWriting.
+    var writerQueueForFinalization: DispatchQueue { writerQueue }
+
+    // MARK: - SCStreamDelegate
+
+    /// Called when the stream stops unexpectedly (e.g., audio capture failure, permission revoked).
+    /// Without this delegate, stream errors are silently lost.
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        logger.error("[SCStream] Stream stopped with error: \(error.localizedDescription)")
+        streamError = error
+    }
+
+    // MARK: - SCStreamOutput
+
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard sampleBuffer.isValid else { return }
-        guard assetWriter.status == .writing else { return }
+        guard sampleBuffer.isValid else {
+            logger.warning("Received invalid sample buffer (type: \(String(describing: type)))")
+            return
+        }
+
+        // Pre-filter non-complete screen frames BEFORE entering writerQueue
+        // to avoid serialization overhead for frames we'd discard anyway.
+        if type == .screen, !isCompleteScreenFrame(sampleBuffer) {
+            return
+        }
 
         let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
 
-        switch type {
-        case .screen:
-            handleVideoSample(sampleBuffer, timestamp: timestamp)
-        case .audio:
-            handleAudioSample(sampleBuffer, timestamp: timestamp)
-        case .microphone:
-            handleAudioSample(sampleBuffer, timestamp: timestamp)
-        @unknown default:
-            break
+        // ALL writer operations serialized on writerQueue.
+        // Video and audio callbacks arrive on separate SCStream queues —
+        // without this, concurrent append() calls corrupt AVAssetWriter.
+        writerQueue.async { [weak self] in
+            guard let self else { return }
+            guard self.assetWriter.status == .writing else {
+                logger.warning("Writer not in writing state (\(self.assetWriter.status.rawValue)), dropping \(String(describing: type)) frame. Error: \(self.assetWriter.error?.localizedDescription ?? "none")")
+                return
+            }
+
+            switch type {
+            case .screen:
+                self.handleVideoSample(sampleBuffer, timestamp: timestamp)
+            case .audio:
+                self.handleAudioSample(sampleBuffer, timestamp: timestamp, input: self.systemAudioInput, label: "system")
+            case .microphone:
+                self.handleAudioSample(sampleBuffer, timestamp: timestamp, input: self.micAudioInput, label: "mic")
+            @unknown default:
+                break
+            }
         }
     }
 
+    /// Called on writerQueue — all state access is safe without additional synchronization.
     private func handleVideoSample(_ sampleBuffer: CMSampleBuffer, timestamp: CMTime) {
-        guard isCompleteScreenFrame(sampleBuffer) else { return }
-
-        // Start session on first video frame
-        if isFirstVideoSample {
+        // Start session on first complete video frame
+        if !isSessionStarted {
             firstSampleTime = timestamp
+            isSessionStarted = true
             assetWriter.startSession(atSourceTime: .zero)
-            isFirstVideoSample = false
+            logger.info("First video frame received — session started at \(timestamp.seconds)s")
+            // Log format description for debugging
+            if let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer) {
+                let dimensions = CMVideoFormatDescriptionGetDimensions(formatDesc)
+                logger.info("Video format: \(dimensions.width)x\(dimensions.height), codec: \(CMFormatDescriptionGetMediaSubType(formatDesc))")
+            }
         }
 
         guard videoInput.isReadyForMoreMediaData else { return }
 
-        // Calculate adjusted timestamp
-        let adjustedTime = CMTimeSubtract(timestamp, firstSampleTime)
-        guard adjustedTime.seconds >= 0 else { return }
-
-        var didAppend = false
-
-        // If webcam is enabled, composite webcam onto screen frame.
-        if let webcamProvider = webcamFrameProvider,
-           let webcamConfig = webcamConfig,
-           let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-
-            let screenImage = CIImage(cvPixelBuffer: pixelBuffer)
-            let now = CACurrentMediaTime()
-            var webcamImage: CIImage?
-
-            if let snapshot = webcamProvider() {
-                webcamImage = snapshot.image
-                lastGoodWebcamFrame = snapshot.image
-                lastGoodWebcamTimestamp = snapshot.capturedAt
-            } else if let cachedFrame = lastGoodWebcamFrame,
-                      now - lastGoodWebcamTimestamp <= webcamFrameGraceWindow {
-                webcamImage = cachedFrame
-            }
-
-            if let webcamImage,
-               let outputBuffer = renderToPixelBuffer(
-                compositeWebcam(webcamImage, onto: screenImage, config: webcamConfig),
-                width: CVPixelBufferGetWidth(pixelBuffer),
-                height: CVPixelBufferGetHeight(pixelBuffer)
-               ),
-               let adaptor = pixelBufferAdaptor {
-                didAppend = adaptor.append(outputBuffer, withPresentationTime: adjustedTime)
-                if !didAppend {
-                    logger.error("Failed to append composited webcam frame; falling back to screen frame")
+        if let retimedBuffer = retimeSampleBuffer(sampleBuffer, offsetBy: firstSampleTime) {
+            let appended = videoInput.append(retimedBuffer)
+            if appended {
+                videoFrameCount += 1
+                // Log progress every 30 frames (roughly once per second at 30fps)
+                if videoFrameCount % 30 == 0 {
+                    logger.debug("Video: \(self.videoFrameCount) frames, audio: \(self.audioFrameCount) frames, writer: \(self.assetWriter.status.rawValue)")
                 }
             } else {
-                logger.warning("Webcam frame unavailable or stale while recording; falling back to screen frame")
-            }
-        }
-
-        // Always append the original screen frame if compositing did not append.
-        if !didAppend,
-           let retimedBuffer = retimeSampleBuffer(sampleBuffer, offsetBy: firstSampleTime) {
-            let appended = videoInput.append(retimedBuffer)
-            if !appended {
-                logger.error("Failed to append retimed screen frame")
+                logger.error("Failed to append screen frame #\(self.videoFrameCount). Writer status: \(self.assetWriter.status.rawValue), error: \(self.assetWriter.error?.localizedDescription ?? "none")")
             }
         }
     }
@@ -493,123 +573,47 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput {
         return status == .complete
     }
 
-    // MARK: - Webcam Compositing
-
-    private func compositeWebcam(_ webcamImage: CIImage, onto screenImage: CIImage, config: WebcamOverlayConfig) -> CIImage {
-        let screenWidth = screenImage.extent.width
-        let screenHeight = screenImage.extent.height
-
-        // Calculate webcam overlay size
-        let webcamDiameter = screenWidth * CGFloat(config.size)
-
-        // Scale webcam to fit the target size
-        let webcamExtent = webcamImage.extent
-        let webcamScale = webcamDiameter / min(webcamExtent.width, webcamExtent.height)
-        let scaledWebcam = webcamImage.transformed(by: CGAffineTransform(scaleX: webcamScale, y: webcamScale))
-
-        // Crop to square (center crop)
-        let scaledExtent = scaledWebcam.extent
-        let cropSize = min(scaledExtent.width, scaledExtent.height)
-        let cropX = scaledExtent.origin.x + (scaledExtent.width - cropSize) / 2
-        let cropY = scaledExtent.origin.y + (scaledExtent.height - cropSize) / 2
-        var croppedWebcam = scaledWebcam.cropped(to: CGRect(x: cropX, y: cropY, width: cropSize, height: cropSize))
-
-        // Apply circular mask if needed
-        if config.shape == .circle {
-            croppedWebcam = applyCircleMask(to: croppedWebcam)
-        } else if config.shape == .roundedRectangle {
-            croppedWebcam = applyRoundedRectMask(to: croppedWebcam, cornerRadius: cropSize * 0.15)
+    private func debugFrameStatus(_ sampleBuffer: CMSampleBuffer) -> String {
+        guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
+              let attachment = attachments.first,
+              let statusRaw = attachment[.status] as? Int else {
+            return "no-attachment"
         }
-
-        // Calculate position
-        let padding = CGFloat(config.padding) * (screenWidth / 1920.0)  // Scale padding relative to 1080p
-        let webcamOrigin: CGPoint
-        switch config.position {
-        case .bottomLeft:
-            webcamOrigin = CGPoint(x: padding, y: padding)
-        case .bottomRight:
-            webcamOrigin = CGPoint(x: screenWidth - cropSize - padding, y: padding)
-        case .topLeft:
-            webcamOrigin = CGPoint(x: padding, y: screenHeight - cropSize - padding)
-        case .topRight:
-            webcamOrigin = CGPoint(x: screenWidth - cropSize - padding, y: screenHeight - cropSize - padding)
+        switch SCFrameStatus(rawValue: statusRaw) {
+        case .idle: return "idle"
+        case .blank: return "blank"
+        case .suspended: return "suspended"
+        case .started: return "started"
+        case .stopped: return "stopped"
+        case .complete: return "complete"
+        default: return "unknown(\(statusRaw))"
         }
-
-        // Translate webcam to position
-        let translatedWebcam = croppedWebcam.transformed(by: CGAffineTransform(
-            translationX: webcamOrigin.x - croppedWebcam.extent.origin.x,
-            y: webcamOrigin.y - croppedWebcam.extent.origin.y
-        ))
-
-        // Composite: webcam on top of screen
-        return translatedWebcam.composited(over: screenImage)
-    }
-
-    private func applyCircleMask(to image: CIImage) -> CIImage {
-        let extent = image.extent
-        let radius = min(extent.width, extent.height) / 2
-
-        // Create radial gradient as circle mask
-        guard let radialGradient = CIFilter(name: "CIRadialGradient", parameters: [
-            "inputCenter": CIVector(x: extent.midX, y: extent.midY),
-            "inputRadius0": radius - 1,  // Solid area
-            "inputRadius1": radius,       // Feather edge (1px)
-            "inputColor0": CIColor.white,
-            "inputColor1": CIColor.clear,
-        ])?.outputImage else { return image }
-
-        let mask = radialGradient.cropped(to: extent)
-
-        guard let blendFilter = CIFilter(name: "CIBlendWithMask", parameters: [
-            kCIInputImageKey: image,
-            kCIInputBackgroundImageKey: CIImage.empty(),
-            kCIInputMaskImageKey: mask,
-        ])?.outputImage else { return image }
-
-        return blendFilter.cropped(to: extent)
-    }
-
-    private func applyRoundedRectMask(to image: CIImage, cornerRadius: CGFloat) -> CIImage {
-        let extent = image.extent
-
-        // Create rounded rect path as mask
-        guard let generator = CIFilter(name: "CIRoundedRectangleGenerator", parameters: [
-            "inputExtent": CIVector(cgRect: extent),
-            "inputRadius": cornerRadius,
-            "inputColor": CIColor.white,
-        ])?.outputImage else { return image }
-
-        guard let blendFilter = CIFilter(name: "CIBlendWithMask", parameters: [
-            kCIInputImageKey: image,
-            kCIInputBackgroundImageKey: CIImage.empty(),
-            kCIInputMaskImageKey: generator,
-        ])?.outputImage else { return image }
-
-        return blendFilter.cropped(to: extent)
-    }
-
-    private func renderToPixelBuffer(_ image: CIImage, width: Int, height: Int) -> CVPixelBuffer? {
-        var pixelBuffer: CVPixelBuffer?
-        let attrs: [String: Any] = [
-            kCVPixelBufferCGImageCompatibilityKey as String: true,
-            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
-        ]
-
-        let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA, attrs as CFDictionary, &pixelBuffer)
-        guard status == kCVReturnSuccess, let buffer = pixelBuffer else { return nil }
-
-        ciContext.render(image, to: buffer)
-        return buffer
     }
 
     // MARK: - Audio
 
-    private func handleAudioSample(_ sampleBuffer: CMSampleBuffer, timestamp: CMTime) {
-        guard !isFirstVideoSample else { return }
-        guard let audioInput, audioInput.isReadyForMoreMediaData else { return }
+    /// Called on writerQueue — all state access is safe without additional synchronization.
+    private func handleAudioSample(_ sampleBuffer: CMSampleBuffer, timestamp: CMTime, input: AVAssetWriterInput?, label: String) {
+        // Wait until session is started by the first video frame
+        guard isSessionStarted else { return }
+        guard let input, input.isReadyForMoreMediaData else { return }
+
+        // Log first audio frame details for debugging
+        if audioFrameCount == 0 {
+            if let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer) {
+                if let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc)?.pointee {
+                    logger.info("First \(label) audio frame — sampleRate: \(asbd.mSampleRate), channels: \(asbd.mChannelsPerFrame), format: \(asbd.mFormatID), bitsPerChannel: \(asbd.mBitsPerChannel)")
+                }
+            }
+        }
 
         if let retimedBuffer = retimeSampleBuffer(sampleBuffer, offsetBy: firstSampleTime) {
-            audioInput.append(retimedBuffer)
+            let appended = input.append(retimedBuffer)
+            if appended {
+                audioFrameCount += 1
+            } else {
+                logger.error("Failed to append \(label) audio frame #\(self.audioFrameCount). Writer status: \(self.assetWriter.status.rawValue), error: \(self.assetWriter.error?.localizedDescription ?? "none")")
+            }
         }
     }
 

@@ -5,7 +5,7 @@ import SwiftUI
 // MARK: - RecordingToolbarPanel
 
 /// Floating frosted-glass toolbar at the bottom-center of the screen.
-/// Shows recording controls: source picker, audio toggles, webcam toggle, start/stop.
+/// Layout inspired by Screen Studio: source picker | camera | mic | system audio | record.
 final class RecordingToolbarPanel {
     private var panel: FloatingPanel<RecordingToolbarContent>?
 
@@ -16,11 +16,11 @@ final class RecordingToolbarPanel {
     ) {
         let content = RecordingToolbarContent(appState: appState)
         let panel = FloatingPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 56)
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 64)
         ) {
             content
         }
-        // Make toolbar draggable like the webcam panel
+        // Make toolbar draggable
         panel.isMovableByWindowBackground = true
 
         panel.positionAtBottomCenter(of: screen ?? NSScreen.main ?? NSScreen.screens[0])
@@ -51,48 +51,104 @@ struct RecordingToolbarContent: View {
     var body: some View {
         @Bindable var appState = appState
 
-        HStack(spacing: 12) {
-            if appState.isRecording {
-                recordingControls
-            } else {
-                idleControls
+        VStack(spacing: 0) {
+            // Permission banner (shown when screen recording is denied)
+            if appState.screenRecordingPermissionDenied {
+                permissionBanner
             }
+
+            HStack(spacing: 0) {
+                if appState.isRecording {
+                    recordingControls
+                } else {
+                    idleControls
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
         .background(ToolbarBackground())
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
-        // NOTE: .alert is on ContentView only — avoid duplicate alerts across
-        // multiple windows/panels which causes CFRunLoop crashes on macOS.
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 16, x: 0, y: 6)
+    }
+
+    // MARK: - Permission Banner
+
+    @ViewBuilder
+    private var permissionBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.yellow)
+
+            Text("Screen recording permission required")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.9))
+
+            Spacer()
+
+            Button("Open Settings") {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .buttonStyle(.plain)
+
+            Button {
+                Task {
+                    await appState.refreshSources()
+                }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+            .help("Re-check permission")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.red.opacity(0.15))
+
+        Divider()
+            .overlay(Color.white.opacity(0.06))
     }
 
     // MARK: - Idle State
 
     @ViewBuilder
     private var idleControls: some View {
-        // Capture mode selector
-        captureModePicker
+        // Section 1: Capture source buttons
+        captureSourceButtons
 
-        Divider()
-            .frame(height: 24)
-            .opacity(0.3)
+        toolbarDivider
 
-        // Audio toggles
-        audioToggles
+        // Section 2: Camera selector
+        cameraSelector
 
-        Divider()
-            .frame(height: 24)
-            .opacity(0.3)
+        toolbarDivider
 
-        // Webcam toggle
-        webcamToggle
+        // Section 3: Microphone selector
+        microphoneSelector
 
-        Divider()
-            .frame(height: 24)
-            .opacity(0.3)
+        toolbarDivider
 
-        // Start button
+        // Section 4: System audio toggle
+        systemAudioToggle
+
+        Spacer()
+            .frame(width: 12)
+
+        // Section 5: Record button
         startButton
     }
 
@@ -100,104 +156,138 @@ struct RecordingToolbarContent: View {
 
     @ViewBuilder
     private var recordingControls: some View {
-        // Pulsing red dot
-        Circle()
-            .fill(.red)
-            .frame(width: 10, height: 10)
-            .modifier(ToolbarPulseAnimation())
+        // Pulsing red dot + duration
+        HStack(spacing: 8) {
+            Circle()
+                .fill(.red)
+                .frame(width: 10, height: 10)
+                .modifier(ToolbarPulseAnimation())
 
-        // Duration
-        Text(formattedDuration(appState.recordingDuration))
-            .font(.system(.body, design: .monospaced))
-            .foregroundStyle(.white)
-            .frame(minWidth: 80)
+            Text(formattedDuration(appState.recordingDuration))
+                .font(.system(.body, design: .monospaced))
+                .foregroundStyle(.white)
+                .frame(minWidth: 80)
+        }
+        .padding(.horizontal, 8)
 
-        Divider()
-            .frame(height: 24)
-            .opacity(0.3)
+        toolbarDivider
+
+        Spacer()
 
         // Stop button
         stopButton
     }
 
-    // MARK: - Components
+    // MARK: - Capture Source Buttons (Display / Window)
 
     @ViewBuilder
-    private var captureModePicker: some View {
-        Menu {
-            Section("Display") {
-                ForEach(appState.coordinator.screenRecorder.availableDisplays, id: \.displayID) { display in
-                    Button {
-                        appState.coordinator.config.captureType = .display
-                        appState.coordinator.config.selectedDisplay = display
-                    } label: {
-                        Text("Display \(display.displayID)")
-                    }
-                }
+    private var captureSourceButtons: some View {
+        HStack(spacing: 2) {
+            sourceButton(
+                icon: "display",
+                label: "Display",
+                isSelected: appState.coordinator.config.captureType == .display
+            ) {
+                appState.coordinator.config.captureType = .display
             }
-            Section("Window") {
-                ForEach(
-                    Array(appState.coordinator.screenRecorder.availableWindows.prefix(10)),
-                    id: \.windowID
-                ) { window in
-                    Button {
-                        appState.coordinator.config.captureType = .window
-                        appState.coordinator.config.selectedWindow = window
-                    } label: {
-                        Text(window.title ?? "Window \(window.windowID)")
-                    }
-                }
+
+            sourceButton(
+                icon: "macwindow",
+                label: "Window",
+                isSelected: appState.coordinator.config.captureType == .window
+            ) {
+                appState.coordinator.config.captureType = .window
             }
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: appState.coordinator.config.captureType == .display
-                    ? "display"
-                    : "macwindow")
-                Image(systemName: "chevron.down")
-                    .font(.caption2)
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
+        .padding(2)
     }
 
-    @ViewBuilder
-    private var audioToggles: some View {
-        // System audio
-        toolbarToggle(
-            icon: appState.captureSystemAudio
-                ? "speaker.wave.2.fill" : "speaker.slash.fill",
-            isOn: appState.captureSystemAudio,
-            tooltip: "System Audio"
-        ) {
-            appState.captureSystemAudio.toggle()
-        }
-
-        // Microphone
-        toolbarToggle(
-            icon: appState.captureMicrophone
-                ? "mic.fill" : "mic.slash.fill",
-            isOn: appState.captureMicrophone,
-            tooltip: "Microphone"
-        ) {
-            appState.captureMicrophone.toggle()
-        }
-    }
+    // MARK: - Camera Selector
 
     @ViewBuilder
-    private var webcamToggle: some View {
-        toolbarToggle(
-            icon: appState.isWebcamRunning
-                ? "video.fill" : "video.slash.fill",
-            isOn: appState.isWebcamRunning,
-            tooltip: "Webcam"
-        ) {
+    private var cameraSelector: some View {
+        Button {
             appState.toggleWebcam()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: appState.isWebcamRunning ? "video.fill" : "video.slash.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(appState.isWebcamRunning ? .white : .white.opacity(0.45))
+
+                Text(appState.isWebcamRunning ? "FaceTime HD" : "No Camera")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(appState.isWebcamRunning ? .white : .white.opacity(0.45))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                appState.isWebcamRunning ? .white.opacity(0.1) : .clear,
+                in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+            )
         }
+        .buttonStyle(.plain)
+        .help("Toggle webcam")
     }
+
+    // MARK: - Microphone Selector
+
+    @ViewBuilder
+    private var microphoneSelector: some View {
+        Button {
+            appState.captureMicrophone.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: appState.captureMicrophone ? "mic.fill" : "mic.slash.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(appState.captureMicrophone ? .white : .white.opacity(0.45))
+
+                Text(appState.captureMicrophone ? "MacBook Pro" : "No Mic")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(appState.captureMicrophone ? .white : .white.opacity(0.45))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                appState.captureMicrophone ? .white.opacity(0.1) : .clear,
+                in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+        .help("Toggle microphone")
+    }
+
+    // MARK: - System Audio Toggle
+
+    @ViewBuilder
+    private var systemAudioToggle: some View {
+        Button {
+            appState.captureSystemAudio.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: appState.captureSystemAudio
+                    ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(appState.captureSystemAudio ? .white : .white.opacity(0.45))
+
+                Text(appState.captureSystemAudio ? "System Audio" : "No Audio")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(appState.captureSystemAudio ? .white : .white.opacity(0.45))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                appState.captureSystemAudio ? .white.opacity(0.1) : .clear,
+                in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+        .help("Toggle system audio capture")
+    }
+
+    // MARK: - Start / Stop Buttons
 
     @ViewBuilder
     private var startButton: some View {
@@ -205,18 +295,28 @@ struct RecordingToolbarContent: View {
             appState.startRecording()
         } label: {
             HStack(spacing: 6) {
-                Circle()
-                    .fill(.red)
-                    .frame(width: 8, height: 8)
-                Text("Record")
-                    .font(.system(.callout, weight: .semibold))
+                if appState.isStartingRecording {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(.white)
+                } else {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 8, height: 8)
+                }
+                Text(appState.isStartingRecording ? "Starting…" : "Record")
+                    .font(.system(size: 13, weight: .semibold))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(.red.opacity(0.8), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                appState.isStartingRecording ? .red.opacity(0.5) : .red,
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
         }
         .buttonStyle(.plain)
+        .disabled(appState.isStartingRecording || appState.screenRecordingPermissionDenied)
     }
 
     @ViewBuilder
@@ -229,38 +329,50 @@ struct RecordingToolbarContent: View {
                     .fill(.white)
                     .frame(width: 10, height: 10)
                 Text("Stop")
-                    .font(.system(.callout, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: - Helpers
+    // MARK: - Reusable Components
 
     @ViewBuilder
-    private func toolbarToggle(
+    private func sourceButton(
         icon: String,
-        isOn: Bool,
-        tooltip: String,
+        label: String,
+        isSelected: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundStyle(isOn ? .white : .white.opacity(0.5))
-                .frame(width: 28, height: 28)
-                .background(
-                    isOn ? .white.opacity(0.15) : .clear,
-                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
-                )
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.45))
+            .frame(width: 60, height: 40)
+            .background(
+                isSelected ? .white.opacity(0.15) : .clear,
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
         }
         .buttonStyle(.plain)
-        .help(tooltip)
     }
+
+    private var toolbarDivider: some View {
+        Divider()
+            .frame(height: 28)
+            .overlay(Color.white.opacity(0.12))
+            .padding(.horizontal, 8)
+    }
+
+    // MARK: - Helpers
 
     private func formattedDuration(_ duration: TimeInterval) -> String {
         let totalSeconds = Int(duration)
@@ -285,7 +397,7 @@ struct ToolbarBackground: NSViewRepresentable {
         view.blendingMode = .behindWindow
         view.state = .active
         view.wantsLayer = true
-        view.layer?.cornerRadius = 16
+        view.layer?.cornerRadius = 14
         return view
     }
 

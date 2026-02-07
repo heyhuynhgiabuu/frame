@@ -95,6 +95,11 @@ struct RecordingConfig {
         config.capturesAudio = captureSystemAudio
         config.excludesCurrentProcessAudio = true  // Don't capture our own app sounds
 
+        // Microphone capture (macOS 15.0+)
+        if #available(macOS 15.0, *) {
+            config.captureMicrophone = captureMicrophone
+        }
+
         return config
     }
 }

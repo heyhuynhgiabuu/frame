@@ -5,8 +5,8 @@ import QuartzCore
 
 private let logger = Logger(subsystem: "com.frame.app", category: "RecordingCoordinator")
 
-/// Orchestrates all recording components: screen capture, cursor tracking, and audio.
-/// This is the single entry point for the UI to control recording.
+/// Orchestrates all recording components: screen capture, cursor tracking, webcam, and audio.
+/// Screen and webcam are recorded to separate files for independent editing.
 @MainActor
 final class RecordingCoordinator: ObservableObject {
 
@@ -27,6 +27,14 @@ final class RecordingCoordinator: ObservableObject {
     var availableDisplays: [SCDisplay] { screenRecorder.availableDisplays }
     var availableWindows: [SCWindow] { screenRecorder.availableWindows }
 
+    // MARK: - Webcam Recording
+
+    /// The webcam engine to record from (set by AppState before starting)
+    weak var webcamEngine: WebcamCaptureEngine?
+
+    /// Whether the webcam was active during this recording session
+    private var isWebcamRecording = false
+
     // MARK: - Refresh
 
     func refreshSources() async {
@@ -40,27 +48,10 @@ final class RecordingCoordinator: ObservableObject {
 
     // MARK: - Start Recording
 
-    func startRecording(webcamFrameBox: WebcamFrameBox? = nil, webcamConfig: WebcamOverlayConfig? = nil) async throws {
+    func startRecording(recordWebcam: Bool = false) async throws {
         guard !isRecording else { return }
 
         logger.info("Starting recording session...")
-
-        // Configure webcam compositing on the screen recorder
-        if let frameBox = webcamFrameBox {
-            let now = CACurrentMediaTime()
-            guard let snapshot = frameBox.snapshot,
-                  now - snapshot.capturedAt <= 0.5 else {
-                throw RecordingError.webcamFrameUnavailable
-            }
-
-            screenRecorder.webcamFrameProvider = { [weak frameBox] in
-                frameBox?.snapshot
-            }
-            screenRecorder.webcamConfig = webcamConfig
-        } else {
-            screenRecorder.webcamFrameProvider = nil
-            screenRecorder.webcamConfig = nil
-        }
 
         // Start screen recording
         do {
@@ -71,6 +62,19 @@ final class RecordingCoordinator: ObservableObject {
             recordingDuration = 0
             isRecording = false
             throw error
+        }
+
+        // Start webcam recording to separate file (if webcam is running)
+        if recordWebcam, let webcamEngine {
+            let webcamURL = makeWebcamOutputURL()
+            do {
+                try await webcamEngine.startRecording(to: webcamURL)
+                isWebcamRecording = true
+                logger.info("Webcam recording started → \(webcamURL.lastPathComponent)")
+            } catch {
+                logger.error("Failed to start webcam recording: \(error.localizedDescription)")
+                // Non-fatal: screen recording continues without webcam
+            }
         }
 
         // Start cursor recording
@@ -98,6 +102,16 @@ final class RecordingCoordinator: ObservableObject {
 
         // Stop screen recording
         let videoURL = await screenRecorder.stopRecording()
+
+        // Stop webcam recording
+        var webcamURL: URL?
+        if isWebcamRecording, let webcamEngine {
+            webcamURL = await webcamEngine.stopRecording()
+            isWebcamRecording = false
+            if let webcamURL {
+                logger.info("Webcam recording saved: \(webcamURL.lastPathComponent)")
+            }
+        }
 
         // Stop cursor recording
         _ = cursorRecorder.stopRecording()
@@ -138,6 +152,7 @@ final class RecordingCoordinator: ObservableObject {
         // Create project
         var project = Project(name: videoURL.deletingPathExtension().lastPathComponent)
         project.recordingURL = videoURL
+        project.webcamRecordingURL = webcamURL
         project.duration = duration
 
         if let display = config.selectedDisplay ?? availableDisplays.first {
@@ -147,6 +162,11 @@ final class RecordingCoordinator: ObservableObject {
         }
 
         project.frameRate = Double(config.frameRate)
+
+        // Mark webcam as enabled in effects if we have a webcam recording
+        if webcamURL != nil {
+            project.effects.webcamEnabled = true
+        }
 
         logger.info("Recording session complete: \(duration)s, saved to \(videoURL.lastPathComponent)")
 
@@ -165,5 +185,19 @@ final class RecordingCoordinator: ObservableObject {
                 self.recordingDuration = self.screenRecorder.recordingDuration
             }
         }
+    }
+
+    // MARK: - Helpers
+
+    private func makeWebcamOutputURL() -> URL {
+        let documentsDir = FileManager.default.urls(for: .moviesDirectory, in: .userDomainMask).first!
+        let frameDir = documentsDir.appendingPathComponent("Frame Recordings", isDirectory: true)
+        try? FileManager.default.createDirectory(at: frameDir, withIntermediateDirectories: true)
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let timestamp = formatter.string(from: Date())
+
+        return frameDir.appendingPathComponent("Frame_\(timestamp)_webcam.mov")
     }
 }
