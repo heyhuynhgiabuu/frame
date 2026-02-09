@@ -22,6 +22,10 @@ final class RecordingCoordinator: ObservableObject {
     @Published private(set) var recordingDuration: TimeInterval = 0
     @Published var config = RecordingConfig()
 
+    var isPaused: Bool {
+        screenRecorder.isPaused
+    }
+
     // MARK: - Available Sources
 
     var availableDisplays: [SCDisplay] { screenRecorder.availableDisplays }
@@ -40,9 +44,9 @@ final class RecordingCoordinator: ObservableObject {
     func refreshSources() async {
         await screenRecorder.refreshAvailableContent()
 
-        // Auto-select primary display if none selected
-        if config.selectedDisplay == nil {
-            config.selectedDisplay = screenRecorder.availableDisplays.first
+        if let selectedDisplay = config.selectedDisplay,
+           let refreshedSelection = screenRecorder.availableDisplays.first(where: { $0.displayID == selectedDisplay.displayID }) {
+            config.selectedDisplay = refreshedSelection
         }
     }
 
@@ -95,7 +99,7 @@ final class RecordingCoordinator: ObservableObject {
     // MARK: - Stop Recording
 
     /// Stops recording and returns a Project with all metadata.
-    func stopRecording() async -> Project? {
+    func stopRecording(discard: Bool = false) async -> Project? {
         guard isRecording else { return nil }
 
         logger.info("Stopping recording session...")
@@ -130,6 +134,15 @@ final class RecordingCoordinator: ObservableObject {
 
         guard let videoURL else {
             logger.error("No video URL after stopping recording")
+            return nil
+        }
+
+        if discard {
+            try? FileManager.default.removeItem(at: videoURL)
+            if let webcamURL {
+                try? FileManager.default.removeItem(at: webcamURL)
+            }
+            logger.info("Recording session discarded")
             return nil
         }
 
@@ -171,6 +184,12 @@ final class RecordingCoordinator: ObservableObject {
         logger.info("Recording session complete: \(duration)s, saved to \(videoURL.lastPathComponent)")
 
         return project
+    }
+
+    func togglePause() {
+        guard isRecording else { return }
+        screenRecorder.togglePause()
+        objectWillChange.send()
     }
 
     // MARK: - Duration Sync

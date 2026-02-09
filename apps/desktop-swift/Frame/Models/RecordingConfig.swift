@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import ScreenCaptureKit
 import CoreGraphics
 
@@ -12,6 +13,9 @@ struct RecordingConfig {
 
     /// Selected window (for window capture mode)
     var selectedWindow: SCWindow?
+
+    /// Preferred output resolution for window capture (nil = native window size)
+    var windowOutputSize: CGSize?
 
     /// Video settings
     var frameRate: Int = 30
@@ -30,12 +34,12 @@ struct RecordingConfig {
     var quality: VideoQuality = .high
 
     init() {
-        // Load persisted values, defaulting to system audio on / mic off
+        // Load persisted values, defaulting to system audio off / mic off
         let defaults = UserDefaults.standard
         if defaults.object(forKey: "captureSystemAudio") != nil {
             self.captureSystemAudio = defaults.bool(forKey: "captureSystemAudio")
         } else {
-            self.captureSystemAudio = true
+            self.captureSystemAudio = false
         }
         if defaults.object(forKey: "captureMicrophone") != nil {
             self.captureMicrophone = defaults.bool(forKey: "captureMicrophone")
@@ -47,6 +51,8 @@ struct RecordingConfig {
     enum CaptureType: String, CaseIterable, Identifiable {
         case display = "Full Screen"
         case window = "Window"
+        case area = "Area"
+        case device = "Device"
 
         var id: String { rawValue }
     }
@@ -71,21 +77,11 @@ struct RecordingConfig {
         let config = SCStreamConfiguration()
 
         // Resolution: account for retina
-        let width = Int(CGFloat(display.width) * scaleFactor)
-        let height = Int(CGFloat(display.height) * scaleFactor)
-
-        // H.264 max is 4096x2304 — downscale if needed
-        let maxWidth = 4096
-        let maxHeight = 2304
-
-        if width > maxWidth || height > maxHeight {
-            let scale = min(Double(maxWidth) / Double(width), Double(maxHeight) / Double(height))
-            config.width = Int(Double(width) * scale)
-            config.height = Int(Double(height) * scale)
-        } else {
-            config.width = width
-            config.height = height
-        }
+        let baseWidth = Int(CGFloat(display.width) * scaleFactor)
+        let baseHeight = Int(CGFloat(display.height) * scaleFactor)
+        let clampedSize = RecordingConfig.clampedVideoSize(width: baseWidth, height: baseHeight)
+        config.width = clampedSize.width
+        config.height = clampedSize.height
 
         config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
         config.showsCursor = showsCursor
@@ -101,5 +97,21 @@ struct RecordingConfig {
         }
 
         return config
+    }
+
+    static func clampedVideoSize(width: Int, height: Int) -> (width: Int, height: Int) {
+        let safeWidth = max(64, width)
+        let safeHeight = max(64, height)
+        let maxWidth = 4096
+        let maxHeight = 2304
+
+        if safeWidth <= maxWidth, safeHeight <= maxHeight {
+            return (safeWidth, safeHeight)
+        }
+
+        let scale = min(Double(maxWidth) / Double(safeWidth), Double(maxHeight) / Double(safeHeight))
+        let scaledWidth = max(64, Int(Double(safeWidth) * scale))
+        let scaledHeight = max(64, Int(Double(safeHeight) * scale))
+        return (scaledWidth, scaledHeight)
     }
 }

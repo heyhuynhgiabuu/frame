@@ -63,9 +63,17 @@ class FloatingPanel<Content: View>: NSPanel {
 
     private func setupContent(_ content: @escaping () -> Content) {
         let hostingView = FirstMouseHostingView(rootView: content())
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
+
+        // Compute the intrinsic size BEFORE setting as contentView
+        // (once set, the hosting view adopts the panel's frame and fittingSize reflects that)
+        let intrinsicSize = hostingView.fittingSize
 
         contentView = hostingView
+
+        // Resize panel to match the SwiftUI content's natural size
+        if intrinsicSize.width > 0 && intrinsicSize.height > 0 {
+            setContentSize(intrinsicSize)
+        }
     }
 
     // MARK: - Key Handling
@@ -97,6 +105,17 @@ class FloatingPanel<Content: View>: NSPanel {
 
         let x = screenFrame.maxX - panelSize.width - xOffset
         let y = screenFrame.minY + yOffset
+
+        setFrameOrigin(NSPoint(x: x, y: y))
+    }
+
+    /// Centers the panel in the given screen.
+    func positionAtCenter(of screen: NSScreen) {
+        let screenFrame = screen.visibleFrame
+        let panelSize = frame.size
+
+        let x = screenFrame.midX - (panelSize.width / 2)
+        let y = screenFrame.midY - (panelSize.height / 2)
 
         setFrameOrigin(NSPoint(x: x, y: y))
     }

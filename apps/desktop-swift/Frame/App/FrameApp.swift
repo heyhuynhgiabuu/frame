@@ -1,11 +1,89 @@
 import SwiftUI
+import AppKit
 import OSLog
 
 private let logger = Logger(subsystem: "com.frame.app", category: "FrameApp")
 
+@MainActor
+final class MenuBarManager: NSObject {
+    private var statusItem: NSStatusItem?
+    private weak var appState: AppState?
+
+    func install(appState: AppState) {
+        guard statusItem == nil else { return }
+        self.appState = appState
+
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = item.button {
+            button.image = NSImage(systemSymbolName: "record.circle", accessibilityDescription: "Frame")
+        }
+
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Show Toolbar", action: #selector(showToolbar), keyEquivalent: "")
+        menu.addItem(withTitle: "Hide Toolbar", action: #selector(hideToolbar), keyEquivalent: "")
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Start Recording", action: #selector(toggleRecording), keyEquivalent: "")
+        menu.addItem(withTitle: "Pause/Resume", action: #selector(togglePause), keyEquivalent: "")
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Open Frame", action: #selector(openFrame), keyEquivalent: "")
+        menu.addItem(withTitle: "Settings...", action: #selector(openSettings), keyEquivalent: "")
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit Frame", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.items.forEach { $0.target = self }
+
+        item.menu = menu
+        statusItem = item
+        refresh()
+    }
+
+    func refresh() {
+        guard let appState, let statusItem else { return }
+        if let button = statusItem.button {
+            button.image = NSImage(
+                systemSymbolName: appState.isRecording ? "record.circle.fill" : "record.circle",
+                accessibilityDescription: appState.isRecording ? "Frame recording" : "Frame"
+            )
+        }
+        statusItem.menu?.item(withTitle: "Show Toolbar")?.isHidden = appState.areOverlaysVisible
+        statusItem.menu?.item(withTitle: "Hide Toolbar")?.isHidden = !appState.areOverlaysVisible
+    }
+
+    @objc private func showToolbar() {
+        appState?.showRecorderOverlays()
+    }
+
+    @objc private func hideToolbar() {
+        appState?.hideRecorderOverlays()
+    }
+
+    @objc private func toggleRecording() {
+        guard let appState else { return }
+        if appState.isRecording {
+            appState.stopRecording()
+        } else {
+            appState.startRecording()
+        }
+    }
+
+    @objc private func togglePause() {
+        appState?.togglePause()
+    }
+
+    @objc private func openFrame() {
+        appState?.showMainWindow()
+    }
+
+    @objc private func openSettings() {
+        guard let appState else { return }
+        appState.showMainWindow()
+        appState.showSettings = true
+    }
+}
+
 @main
 struct FrameApp: App {
     @State private var appState = AppState()
+    @State private var menuBarManager = MenuBarManager()
     /// Delegate that manages main window visibility based on app mode.
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
@@ -15,6 +93,10 @@ struct FrameApp: App {
                 .environment(appState)
                 .frame(minWidth: 960, minHeight: 640)
                 .background(WindowAccessor(appState: appState))
+                .onAppear {
+                    menuBarManager.install(appState: appState)
+                    appState.menuBarManager = menuBarManager
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowToolbarStyle(.unified(showsTitle: true))

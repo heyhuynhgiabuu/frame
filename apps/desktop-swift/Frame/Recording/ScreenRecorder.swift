@@ -39,6 +39,9 @@ final class ScreenRecorder: NSObject, ObservableObject {
     private var micAudioInput: AVAssetWriterInput?
     private var durationTimer: Timer?
     private var startTime: Date?
+    private var pausedAt: Date?
+    private var accumulatedPausedDuration: TimeInterval = 0
+    private let pauseStateStore = PauseStateStore()
 
     /// Output file URL for the current recording
     private(set) var outputURL: URL?
@@ -90,6 +93,7 @@ final class ScreenRecorder: NSObject, ObservableObject {
         // Determine what to capture
         let filter: SCContentFilter
         let display: SCDisplay
+        var selectedWindowForCapture: SCWindow?
 
         switch config.captureType {
         case .display:
@@ -114,11 +118,55 @@ final class ScreenRecorder: NSObject, ObservableObject {
                 throw RecordingError.noDisplayAvailable
             }
             display = windowDisplay
+            selectedWindowForCapture = selectedWindow
             filter = SCContentFilter(desktopIndependentWindow: selectedWindow)
+
+        case .area:
+            guard let selectedDisplay = config.selectedDisplay ?? availableDisplays.first else {
+                throw RecordingError.noDisplayAvailable
+            }
+            display = selectedDisplay
+            logger.warning("Area capture selected but area picker is unavailable; using full display")
+            let appsToInclude = availableApplications.filter {
+                $0.bundleIdentifier != Bundle.main.bundleIdentifier
+            }
+            filter = SCContentFilter(display: selectedDisplay, including: appsToInclude, exceptingWindows: [])
+
+        case .device:
+            guard let selectedDisplay = config.selectedDisplay ?? availableDisplays.first else {
+                throw RecordingError.noDisplayAvailable
+            }
+            display = selectedDisplay
+            logger.warning("Device capture selected but unsupported; using full display")
+            let appsToInclude = availableApplications.filter {
+                $0.bundleIdentifier != Bundle.main.bundleIdentifier
+            }
+            filter = SCContentFilter(display: selectedDisplay, including: appsToInclude, exceptingWindows: [])
         }
 
         // Configure stream
         let streamConfig = config.makeStreamConfiguration(for: display)
+
+        if config.captureType == .window,
+           let selectedWindow = selectedWindowForCapture {
+            let defaultWindowSize = RecordingConfig.clampedVideoSize(
+                width: Int(selectedWindow.frame.width.rounded()),
+                height: Int(selectedWindow.frame.height.rounded())
+            )
+
+            let targetSize: (width: Int, height: Int)
+            if let outputSize = config.windowOutputSize {
+                targetSize = RecordingConfig.clampedVideoSize(
+                    width: Int(outputSize.width.rounded()),
+                    height: Int(outputSize.height.rounded())
+                )
+            } else {
+                targetSize = defaultWindowSize
+            }
+
+            streamConfig.width = targetSize.width
+            streamConfig.height = targetSize.height
+        }
 
         // Setup output file
         let outputURL = makeOutputURL()
@@ -129,6 +177,7 @@ final class ScreenRecorder: NSObject, ObservableObject {
         let captureSystemAudio = config.captureSystemAudio
         let captureMicrophone = config.captureMicrophone
         let frameRate = config.frameRate
+        let pauseStateStore = self.pauseStateStore
 
         // Run the entire AVAssetWriter + SCStream setup off the main actor.
         // This prevents blocking the UI while the capture pipeline initialises
@@ -200,7 +249,8 @@ final class ScreenRecorder: NSObject, ObservableObject {
                 assetWriter: writer,
                 videoInput: vInput,
                 systemAudioInput: sysAudioInput,
-                micAudioInput: micInput
+                micAudioInput: micInput,
+                pauseStateStore: pauseStateStore
             )
 
             // Now safe to start writing — all inputs are configured
@@ -248,12 +298,17 @@ final class ScreenRecorder: NSObject, ObservableObject {
         isRecording = true
         isPaused = false
         startTime = Date()
+        pausedAt = nil
+        accumulatedPausedDuration = 0
+        pauseStateStore.update(isPaused: false, pausedDuration: 0)
 
         // Start duration timer
         durationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self, let startTime = self.startTime else { return }
-                self.recordingDuration = Date().timeIntervalSince(startTime)
+                let now = Date()
+                let inFlightPause = self.pausedAt.map { now.timeIntervalSince($0) } ?? 0
+                self.recordingDuration = max(0, now.timeIntervalSince(startTime) - self.accumulatedPausedDuration - inFlightPause)
             }
         }
         durationTimer?.fire()
@@ -269,9 +324,12 @@ final class ScreenRecorder: NSObject, ObservableObject {
         durationTimer?.invalidate()
         durationTimer = nil
         startTime = nil
+        pausedAt = nil
+        accumulatedPausedDuration = 0
         recordingDuration = 0
         isRecording = false
         isPaused = false
+        pauseStateStore.update(isPaused: false, pausedDuration: 0)
 
         if let stream {
             try? await Task.detached(priority: .userInitiated) {
@@ -301,6 +359,24 @@ final class ScreenRecorder: NSObject, ObservableObject {
     }
 
     // MARK: - Stop Recording
+
+    func togglePause() {
+        guard isRecording else { return }
+
+        if isPaused {
+            let pauseInterval = pausedAt.map { Date().timeIntervalSince($0) } ?? 0
+            accumulatedPausedDuration += pauseInterval
+            pausedAt = nil
+            isPaused = false
+            pauseStateStore.update(isPaused: false, pausedDuration: accumulatedPausedDuration)
+            logger.info("Screen recording resumed")
+        } else {
+            pausedAt = Date()
+            isPaused = true
+            pauseStateStore.update(isPaused: true, pausedDuration: accumulatedPausedDuration)
+            logger.info("Screen recording paused")
+        }
+    }
 
     func stopRecording() async -> URL? {
         guard isRecording else { return nil }
@@ -372,6 +448,9 @@ final class ScreenRecorder: NSObject, ObservableObject {
         // Reset state
         isRecording = false
         isPaused = false
+        pausedAt = nil
+        accumulatedPausedDuration = 0
+        pauseStateStore.update(isPaused: false, pausedDuration: 0)
         streamOutput = nil
 
         // Only return URL if writer completed successfully
@@ -387,6 +466,11 @@ final class ScreenRecorder: NSObject, ObservableObject {
         }
 
         let url = outputURL
+        outputURL = nil
+        assetWriter = nil
+        videoInput = nil
+        systemAudioInput = nil
+        micAudioInput = nil
         return url
     }
 
@@ -412,6 +496,28 @@ final class ScreenRecorder: NSObject, ObservableObject {
         }
 
         return url
+    }
+}
+
+// MARK: - Pause State
+
+private final class PauseStateStore: @unchecked Sendable {
+    private let lock = NSLock()
+    private var paused = false
+    private var pausedDuration: TimeInterval = 0
+
+    func update(isPaused: Bool, pausedDuration: TimeInterval) {
+        lock.lock()
+        paused = isPaused
+        self.pausedDuration = pausedDuration
+        lock.unlock()
+    }
+
+    func snapshot() -> (isPaused: Bool, pausedDuration: TimeInterval) {
+        lock.lock()
+        let value = (paused, pausedDuration)
+        lock.unlock()
+        return value
     }
 }
 
@@ -454,6 +560,7 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate 
     private let videoInput: AVAssetWriterInput
     private let systemAudioInput: AVAssetWriterInput?
     private let micAudioInput: AVAssetWriterInput?
+    private let pauseStateStore: PauseStateStore
 
     /// Serial queue that serializes ALL AVAssetWriter operations (startSession, append, stats).
     /// Video and audio callbacks arrive on different SCStream queues — without serialization,
@@ -467,11 +574,18 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate 
     /// Error reported by SCStreamDelegate when the stream stops unexpectedly
     private(set) var streamError: Error?
 
-    init(assetWriter: AVAssetWriter, videoInput: AVAssetWriterInput, systemAudioInput: AVAssetWriterInput?, micAudioInput: AVAssetWriterInput?) {
+    init(
+        assetWriter: AVAssetWriter,
+        videoInput: AVAssetWriterInput,
+        systemAudioInput: AVAssetWriterInput?,
+        micAudioInput: AVAssetWriterInput?,
+        pauseStateStore: PauseStateStore
+    ) {
         self.assetWriter = assetWriter
         self.videoInput = videoInput
         self.systemAudioInput = systemAudioInput
         self.micAudioInput = micAudioInput
+        self.pauseStateStore = pauseStateStore
         super.init()
     }
 
@@ -518,13 +632,30 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate 
                 return
             }
 
+            let pauseState = self.pauseStateStore.snapshot()
+            if pauseState.isPaused {
+                return
+            }
+
             switch type {
             case .screen:
-                self.handleVideoSample(sampleBuffer, timestamp: timestamp)
+                self.handleVideoSample(sampleBuffer, timestamp: timestamp, pausedDuration: pauseState.pausedDuration)
             case .audio:
-                self.handleAudioSample(sampleBuffer, timestamp: timestamp, input: self.systemAudioInput, label: "system")
+                self.handleAudioSample(
+                    sampleBuffer,
+                    timestamp: timestamp,
+                    input: self.systemAudioInput,
+                    label: "system",
+                    pausedDuration: pauseState.pausedDuration
+                )
             case .microphone:
-                self.handleAudioSample(sampleBuffer, timestamp: timestamp, input: self.micAudioInput, label: "mic")
+                self.handleAudioSample(
+                    sampleBuffer,
+                    timestamp: timestamp,
+                    input: self.micAudioInput,
+                    label: "mic",
+                    pausedDuration: pauseState.pausedDuration
+                )
             @unknown default:
                 break
             }
@@ -532,7 +663,7 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate 
     }
 
     /// Called on writerQueue — all state access is safe without additional synchronization.
-    private func handleVideoSample(_ sampleBuffer: CMSampleBuffer, timestamp: CMTime) {
+    private func handleVideoSample(_ sampleBuffer: CMSampleBuffer, timestamp: CMTime, pausedDuration: TimeInterval) {
         // Start session on first complete video frame
         if !isSessionStarted {
             firstSampleTime = timestamp
@@ -548,7 +679,7 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate 
 
         guard videoInput.isReadyForMoreMediaData else { return }
 
-        if let retimedBuffer = retimeSampleBuffer(sampleBuffer, offsetBy: firstSampleTime) {
+        if let retimedBuffer = retimeSampleBuffer(sampleBuffer, offsetBy: firstSampleTime, pausedDuration: pausedDuration) {
             let appended = videoInput.append(retimedBuffer)
             if appended {
                 videoFrameCount += 1
@@ -593,7 +724,13 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate 
     // MARK: - Audio
 
     /// Called on writerQueue — all state access is safe without additional synchronization.
-    private func handleAudioSample(_ sampleBuffer: CMSampleBuffer, timestamp: CMTime, input: AVAssetWriterInput?, label: String) {
+    private func handleAudioSample(
+        _ sampleBuffer: CMSampleBuffer,
+        timestamp: CMTime,
+        input: AVAssetWriterInput?,
+        label: String,
+        pausedDuration: TimeInterval
+    ) {
         // Wait until session is started by the first video frame
         guard isSessionStarted else { return }
         guard let input, input.isReadyForMoreMediaData else { return }
@@ -607,7 +744,7 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate 
             }
         }
 
-        if let retimedBuffer = retimeSampleBuffer(sampleBuffer, offsetBy: firstSampleTime) {
+        if let retimedBuffer = retimeSampleBuffer(sampleBuffer, offsetBy: firstSampleTime, pausedDuration: pausedDuration) {
             let appended = input.append(retimedBuffer)
             if appended {
                 audioFrameCount += 1
@@ -618,9 +755,14 @@ private class RecordingStreamOutput: NSObject, SCStreamOutput, SCStreamDelegate 
     }
 
     /// Retime a sample buffer so timestamps start from zero.
-    private func retimeSampleBuffer(_ buffer: CMSampleBuffer, offsetBy offset: CMTime) -> CMSampleBuffer? {
+    private func retimeSampleBuffer(
+        _ buffer: CMSampleBuffer,
+        offsetBy offset: CMTime,
+        pausedDuration: TimeInterval
+    ) -> CMSampleBuffer? {
         let originalTime = CMSampleBufferGetPresentationTimeStamp(buffer)
-        let adjustedTime = CMTimeSubtract(originalTime, offset)
+        let adjustedByStart = CMTimeSubtract(originalTime, offset)
+        let adjustedTime = CMTimeSubtract(adjustedByStart, CMTime(seconds: pausedDuration, preferredTimescale: 600))
 
         guard adjustedTime.seconds >= 0 else { return nil }
 

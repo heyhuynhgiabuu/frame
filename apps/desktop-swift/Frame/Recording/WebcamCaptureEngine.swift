@@ -52,6 +52,7 @@ final class WebcamCaptureEngine: NSObject, ObservableObject {
     @Published var latestFrame: CIImage?
     @Published var availableCameras: [AVCaptureDevice] = []
     @Published var selectedCameraID: String?
+    @Published var maxResolution: RecorderToolbarSettings.CameraResolution = .p1080
     @Published var permissionGranted = false
 
     private var captureSession: AVCaptureSession?
@@ -81,7 +82,7 @@ final class WebcamCaptureEngine: NSObject, ObservableObject {
 
     func refreshCameras() {
         let discovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .externalUnknown],
+            deviceTypes: [.builtInWideAngleCamera, .external],
             mediaType: .video,
             position: .unspecified
         )
@@ -118,7 +119,12 @@ final class WebcamCaptureEngine: NSObject, ObservableObject {
         }
 
         let session = AVCaptureSession()
-        session.sessionPreset = .medium    // 480p — sufficient for PiP overlay
+        let requestedPreset = maxResolution.preset
+        if session.canSetSessionPreset(requestedPreset) {
+            session.sessionPreset = requestedPreset
+        } else {
+            session.sessionPreset = .high
+        }
 
         do {
             let input = try AVCaptureDeviceInput(device: device)

@@ -36,8 +36,13 @@ struct SourcePicker: View {
             Section("Display") {
                 ForEach(Array(displays.enumerated()), id: \.offset) { index, display in
                     Button(action: {
-                        config.captureType = .display
-                        config.selectedDisplay = display
+                        if let appState {
+                            appState.setCaptureMode(RecorderToolbarSettings.CaptureMode.display)
+                            appState.setSelectedDisplay(display)
+                        } else {
+                            config.captureType = .display
+                            config.selectedDisplay = display
+                        }
                     }) {
                         Label(
                             displays.count > 1 ? "Display \(index + 1)" : "Full Screen",
@@ -50,8 +55,13 @@ struct SourcePicker: View {
             Section("Window") {
                 ForEach(Array(windows.prefix(10).enumerated()), id: \.offset) { _, window in
                     Button(action: {
-                        config.captureType = .window
-                        config.selectedWindow = window
+                        if let appState {
+                            appState.setCaptureMode(RecorderToolbarSettings.CaptureMode.window)
+                            appState.setSelectedWindow(window)
+                        } else {
+                            config.captureType = .window
+                            config.selectedWindow = window
+                        }
                     }) {
                         Label(
                             window.title ?? window.owningApplication?.applicationName ?? "Unknown",
@@ -60,9 +70,23 @@ struct SourcePicker: View {
                     }
                 }
             }
+
+            Section("Other") {
+                Button(action: {
+                    config.captureType = .area
+                }) {
+                    Label("Area", systemImage: "rectangle.dashed")
+                }
+
+                Button(action: {
+                    config.captureType = .device
+                }) {
+                    Label("Device", systemImage: "iphone")
+                }
+            }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: config.captureType == .display ? "macwindow" : "macwindow.on.rectangle")
+                Image(systemName: captureTypeIcon)
                     .font(.caption)
                 Text(captureTypeLabel)
             }
@@ -77,6 +101,19 @@ struct SourcePicker: View {
             return "Full Screen"
         case .window:
             return config.selectedWindow?.title ?? "Select Window"
+        case .area:
+            return "Area"
+        case .device:
+            return "Device"
+        }
+    }
+
+    private var captureTypeIcon: String {
+        switch config.captureType {
+        case .display: return "macwindow"
+        case .window: return "macwindow.on.rectangle"
+        case .area: return "rectangle.dashed"
+        case .device: return "iphone"
         }
     }
 

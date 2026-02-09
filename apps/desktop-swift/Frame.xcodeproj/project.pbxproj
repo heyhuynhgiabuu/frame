@@ -15,6 +15,7 @@
 		14303987201864FAB4F39FE9 /* KeystrokeOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0108D09BBAE7279BD48F2766 /* KeystrokeOverlayView.swift */; };
 		148DCF9EA9A1413EA9925572 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFBE2000E3071349117B60D /* ContentView.swift */; };
 		14E4BEAF96713BB76B8DCDA6 /* WebcamCaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26CCD748ABA095ECB09CB09 /* WebcamCaptureEngine.swift */; };
+		17554693A6B7416930EC06FC /* MicLevelBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 049A43668BD717C3732C14A3 /* MicLevelBar.swift */; };
 		296A74714EEF72AADD00A32D /* CursorOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E8844D2CF7061FA83F9825 /* CursorOverlayView.swift */; };
 		2AA15B38918DCD207451BCA0 /* CursorInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E68E742B61ECCDFDDD0EFEE1 /* CursorInspector.swift */; };
 		2CB13829D7FBC83CF91CFD12 /* WebcamPreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95837CDAAAA70B0C5883AC6A /* WebcamPreviewPanel.swift */; };
@@ -43,12 +44,14 @@
 		E07362BF274B4D5347EE0ED7 /* PlaybackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75D71B885375C89AD068111 /* PlaybackEngine.swift */; };
 		E7B519873B9C7189719B3727 /* WebcamOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6AF8E10E02234C3DC8EB79 /* WebcamOverlayView.swift */; };
 		ECE643B012AFD5E3744012D5 /* RecordingToolbarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF64E2264CECE9A459241E5 /* RecordingToolbarPanel.swift */; };
+		EEF7471AB21FA78798F1DA56 /* MicLevelMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED924C4DAEE4616BC5497EEF /* MicLevelMonitor.swift */; };
 		FAA8AA768601B4FD5CEBB0E3 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D2D678A52372391A8B3FC3 /* RecordingView.swift */; };
 		FB69D85D85F079C4DC834EE8 /* PreviewCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07E4178CF090EDE56BD68CE /* PreviewCanvas.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0108D09BBAE7279BD48F2766 /* KeystrokeOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeystrokeOverlayView.swift; sourceTree = "<group>"; };
+		049A43668BD717C3732C14A3 /* MicLevelBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MicLevelBar.swift; path = Frame/Views/Components/MicLevelBar.swift; sourceTree = SOURCE_ROOT; };
 		06C1C6DCAE75A17A8FC3D5A3 /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
 		07079030A5C678F0E454F8A5 /* CursorRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorRecorder.swift; sourceTree = "<group>"; };
 		08DF2D7417D40EA46B150146 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -85,6 +88,7 @@
 		D462B3A262661F29D8AEA719 /* InspectorComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorComponents.swift; sourceTree = "<group>"; };
 		D7A1D7FB7BAC9248A4F7088C /* ZoomInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomInspector.swift; sourceTree = "<group>"; };
 		E68E742B61ECCDFDDD0EFEE1 /* CursorInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorInspector.swift; sourceTree = "<group>"; };
+		ED924C4DAEE4616BC5497EEF /* MicLevelMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MicLevelMonitor.swift; path = Frame/Utilities/MicLevelMonitor.swift; sourceTree = SOURCE_ROOT; };
 		F75D71B885375C89AD068111 /* PlaybackEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackEngine.swift; sourceTree = "<group>"; };
 		FAFBE2000E3071349117B60D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FBFD2E6B72EFF28F0FD15770 /* FrameApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameApp.swift; sourceTree = "<group>"; };
@@ -97,6 +101,8 @@
 			children = (
 				96B1447DFCF1DE0FC7327042 /* Frame */,
 				6BC5D08A38AC189E3B0CBDED /* Products */,
+				ED924C4DAEE4616BC5497EEF /* MicLevelMonitor.swift */,
+				049A43668BD717C3732C14A3 /* MicLevelBar.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -377,6 +383,8 @@
 				2CB13829D7FBC83CF91CFD12 /* WebcamPreviewPanel.swift in Sources */,
 				908DBB8A4EA1EE88957706FD /* ZoomEngine.swift in Sources */,
 				B63094B8407D21048982FAE1 /* ZoomInspector.swift in Sources */,
+				EEF7471AB21FA78798F1DA56 /* MicLevelMonitor.swift in Sources */,
+				17554693A6B7416930EC06FC /* MicLevelBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
