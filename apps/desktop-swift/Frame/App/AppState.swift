@@ -76,6 +76,62 @@ struct RecorderToolbarSettings {
         }
     }
 
+    enum AreaAspectRatio: String, CaseIterable, Identifiable {
+        case any
+        case ratio16x9 = "16:9"
+        case ratio4x3 = "4:3"
+        case ratio1x1 = "1:1"
+        case ratio3x4 = "3:4"
+        case ratio9x16 = "9:16"
+        case custom
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .any: return "Any"
+            case .ratio16x9: return "16:9"
+            case .ratio4x3: return "4:3"
+            case .ratio1x1: return "1:1"
+            case .ratio3x4: return "3:4"
+            case .ratio9x16: return "9:16"
+            case .custom: return "Custom aspect ratio"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .any: return "rectangle.dashed"
+            case .ratio16x9: return "rectangle"
+            case .ratio4x3: return "rectangle.portrait"
+            case .ratio1x1: return "square"
+            case .ratio3x4: return "rectangle.portrait"
+            case .ratio9x16: return "rectangle.portrait"
+            case .custom: return "aspectratio"
+            }
+        }
+
+        /// Returns the ratio as width/height, or nil for `.any` and `.custom`.
+        var ratioValue: CGFloat? {
+            switch self {
+            case .any, .custom: return nil
+            case .ratio16x9: return 16.0 / 9.0
+            case .ratio4x3: return 4.0 / 3.0
+            case .ratio1x1: return 1.0
+            case .ratio3x4: return 3.0 / 4.0
+            case .ratio9x16: return 9.0 / 16.0
+            }
+        }
+    }
+
+    struct SavedAreaDimension: Codable, Hashable, Identifiable {
+        var id: String { "\(width)x\(height)" }
+        let width: Int
+        let height: Int
+
+        var label: String { "\(width) × \(height)" }
+    }
+
     var captureMode: CaptureMode = .display
     var cameraDeviceID: String?
     var cameraResolution: CameraResolution = .p1080
@@ -94,6 +150,14 @@ struct RecorderToolbarSettings {
     var showSpeakerNotes = false
     var recordingCountdown: Countdown = .none
     var recordingEngineMode: RecordingEngineMode = .modernAuto
+
+    // MARK: - Area capture settings
+    var areaWidth: Int = 1920
+    var areaHeight: Int = 1080
+    var areaX: Int = 0
+    var areaY: Int = 0
+    var areaAspectRatio: AreaAspectRatio = .any
+    var savedAreaDimensions: [SavedAreaDimension] = []
 
     static func load() -> RecorderToolbarSettings {
         let defaults = UserDefaults.standard
@@ -140,6 +204,27 @@ struct RecorderToolbarSettings {
            let value = RecordingEngineMode(rawValue: raw) {
             settings.recordingEngineMode = value
         }
+        // Area capture settings
+        if defaults.object(forKey: "toolbar.area.width") != nil {
+            settings.areaWidth = defaults.integer(forKey: "toolbar.area.width")
+        }
+        if defaults.object(forKey: "toolbar.area.height") != nil {
+            settings.areaHeight = defaults.integer(forKey: "toolbar.area.height")
+        }
+        if defaults.object(forKey: "toolbar.area.x") != nil {
+            settings.areaX = defaults.integer(forKey: "toolbar.area.x")
+        }
+        if defaults.object(forKey: "toolbar.area.y") != nil {
+            settings.areaY = defaults.integer(forKey: "toolbar.area.y")
+        }
+        if let raw = defaults.string(forKey: "toolbar.area.aspectRatio"),
+           let value = AreaAspectRatio(rawValue: raw) {
+            settings.areaAspectRatio = value
+        }
+        if let data = defaults.data(forKey: "toolbar.area.savedDimensions"),
+           let decoded = try? JSONDecoder().decode([SavedAreaDimension].self, from: data) {
+            settings.savedAreaDimensions = decoded
+        }
         return settings
     }
 
@@ -163,6 +248,15 @@ struct RecorderToolbarSettings {
         defaults.set(showSpeakerNotes, forKey: "toolbar.settings.showSpeakerNotes")
         defaults.set(recordingCountdown.rawValue, forKey: "toolbar.settings.countdown")
         defaults.set(recordingEngineMode.rawValue, forKey: "toolbar.settings.recordingEngine")
+        // Area capture settings
+        defaults.set(areaWidth, forKey: "toolbar.area.width")
+        defaults.set(areaHeight, forKey: "toolbar.area.height")
+        defaults.set(areaX, forKey: "toolbar.area.x")
+        defaults.set(areaY, forKey: "toolbar.area.y")
+        defaults.set(areaAspectRatio.rawValue, forKey: "toolbar.area.aspectRatio")
+        if let data = try? JSONEncoder().encode(savedAreaDimensions) {
+            defaults.set(data, forKey: "toolbar.area.savedDimensions")
+        }
     }
 }
 
@@ -374,6 +468,7 @@ final class AppState {
     // MARK: - Overlay Panels
 
     let overlayManager = OverlayManager()
+    let areaSelectionManager = AreaSelectionManager()
     var menuBarManager: MenuBarManager?
 
     var recorderToolbarSettings = RecorderToolbarSettings.load() {
@@ -706,6 +801,7 @@ final class AppState {
 
     func hideRecorderOverlays() {
         overlayManager.hideOverlays()
+        areaSelectionManager.dismiss()
         stopMicLevelMonitoring()
         hasUserExplicitlySelectedCaptureModeForCard = false
         isAwaitingDisplayClickSelection = false
@@ -742,6 +838,11 @@ final class AppState {
             isAwaitingDisplayClickSelection = false
             hoveredDisplayForSelection = nil
             beginWindowClickSelection()
+        case .area:
+            isAwaitingDisplayClickSelection = false
+            isAwaitingWindowClickSelection = false
+            stopDisplaySelectionTracking(clearHover: true)
+            beginAreaSelection()
         default:
             isAwaitingDisplayClickSelection = false
             isAwaitingWindowClickSelection = false
@@ -823,6 +924,45 @@ final class AppState {
 
     func setDisableAutoGainControl(_ enabled: Bool) {
         recorderToolbarSettings.disableAutoGainControl = enabled
+    }
+
+    // MARK: - Area capture helpers
+
+    /// Adjusts area height to match the current aspect ratio (after width changes).
+    func applyAreaAspectRatioFromWidth() {
+        guard let ratio = recorderToolbarSettings.areaAspectRatio.ratioValue else { return }
+        let newHeight = Int(round(Double(recorderToolbarSettings.areaWidth) / ratio))
+        recorderToolbarSettings.areaHeight = max(1, newHeight)
+    }
+
+    /// Adjusts area width to match the current aspect ratio (after height changes).
+    func applyAreaAspectRatioFromHeight() {
+        guard let ratio = recorderToolbarSettings.areaAspectRatio.ratioValue else { return }
+        let newWidth = Int(round(Double(recorderToolbarSettings.areaHeight) * ratio))
+        recorderToolbarSettings.areaWidth = max(1, newWidth)
+    }
+
+    /// Saves the current area width×height to saved dimensions.
+    func saveCurrentAreaDimension() {
+        let dim = RecorderToolbarSettings.SavedAreaDimension(
+            width: recorderToolbarSettings.areaWidth,
+            height: recorderToolbarSettings.areaHeight
+        )
+        // Avoid duplicates
+        if !recorderToolbarSettings.savedAreaDimensions.contains(dim) {
+            recorderToolbarSettings.savedAreaDimensions.append(dim)
+            recorderToolbarSettings.save()
+        }
+    }
+
+    /// Launches the full-screen area selection overlay for click-drag region picking.
+    func beginAreaSelection() {
+        areaSelectionManager.startSelection(appState: self)
+    }
+
+    /// Dismisses the area selection overlay if active.
+    func cancelAreaSelection() {
+        areaSelectionManager.dismiss()
     }
 
     var availableDisplays: [SCDisplay] { coordinator.availableDisplays }
@@ -1515,6 +1655,7 @@ final class AppState {
             )
             print("[Frame] Recording started successfully")
             logger.info("Recording started successfully")
+            areaSelectionManager.dismiss()
             overlayManager.updateDisplayCardVisibility(appState: self)
             menuBarManager?.refresh()
         } catch let error as RecordingError {
@@ -1794,12 +1935,21 @@ final class AppState {
         switch recorderToolbarSettings.captureMode {
         case .display:
             coordinator.config.captureType = .display
+            coordinator.config.areaRect = nil
         case .window:
             coordinator.config.captureType = .window
+            coordinator.config.areaRect = nil
         case .area:
             coordinator.config.captureType = .area
+            coordinator.config.areaRect = CGRect(
+                x: recorderToolbarSettings.areaX,
+                y: recorderToolbarSettings.areaY,
+                width: recorderToolbarSettings.areaWidth,
+                height: recorderToolbarSettings.areaHeight
+            )
         case .device:
             coordinator.config.captureType = .device
+            coordinator.config.areaRect = nil
         }
 
         applyWindowOutputSizeToRuntime()

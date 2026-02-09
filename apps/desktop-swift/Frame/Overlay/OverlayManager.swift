@@ -88,9 +88,13 @@ final class OverlayManager {
         let eligibleMode = appState.recorderToolbarSettings.captureMode == .display ||
             appState.recorderToolbarSettings.captureMode == .window ||
             appState.recorderToolbarSettings.captureMode == .area
+        // For area mode, only show the card after the user has drawn a selection
+        let areaReady = appState.recorderToolbarSettings.captureMode != .area ||
+            appState.areaSelectionManager.hasDrawnSelection
         let shouldShow = !appState.isRecording &&
             appState.hasUserExplicitlySelectedCaptureModeForCard &&
             eligibleMode &&
+            areaReady &&
             !appState.screenRecordingPermissionDenied
         if shouldShow {
             let shouldShowBackdrop = appState.recorderToolbarSettings.captureMode == .display ||
@@ -139,6 +143,7 @@ final class OverlayManager {
         if let w = selectionBackdrop.nsWindow { windows.append(w) }
         if let w = windowSelectionHighlight.nsWindow { windows.append(w) }
         if let w = displayInfoCard.nsWindow { windows.append(w) }
+        // Area selection panels are excluded automatically via sharingType = .none
         return windows
     }
 }
@@ -304,6 +309,8 @@ private final class DisplayInfoCardPanel {
         switch appState.recorderToolbarSettings.captureMode {
         case .window:
             return NSSize(width: 360, height: 220)
+        case .area:
+            return NSSize(width: 340, height: 230)
         default:
             return NSSize(width: 320, height: 136)
         }
@@ -313,6 +320,7 @@ private final class DisplayInfoCardPanel {
     func show(appState: AppState, on screen: NSScreen? = nil) {
         let content = DisplayInfoCardContent(appState: appState)
         let size = panelSize(for: appState)
+        let isAreaMode = appState.recorderToolbarSettings.captureMode == .area
 
         if let panel {
             panel.updateContent {
@@ -320,7 +328,11 @@ private final class DisplayInfoCardPanel {
             }
             panel.setContentSize(size)
             if let target = screen ?? NSScreen.main ?? NSScreen.screens.first {
-                panel.positionAtCenter(of: target)
+                if isAreaMode, appState.areaSelectionManager.hasDrawnSelection {
+                    positionBelowAreaSelection(panel: panel, appState: appState, on: target)
+                } else {
+                    panel.positionAtCenter(of: target)
+                }
             }
             panel.show()
             return
@@ -334,10 +346,38 @@ private final class DisplayInfoCardPanel {
         panel.isMovableByWindowBackground = true
         panel.hasShadow = false
         if let target = screen ?? NSScreen.main ?? NSScreen.screens.first {
-            panel.positionAtCenter(of: target)
+            if isAreaMode, appState.areaSelectionManager.hasDrawnSelection {
+                positionBelowAreaSelection(panel: panel, appState: appState, on: target)
+            } else {
+                panel.positionAtCenter(of: target)
+            }
         }
         panel.show()
         self.panel = panel
+    }
+
+    /// Positions the info card centered below the area selection rectangle.
+    @MainActor
+    private func positionBelowAreaSelection(
+        panel: FloatingPanel<DisplayInfoCardContent>,
+        appState: AppState,
+        on screen: NSScreen
+    ) {
+        let settings = appState.recorderToolbarSettings
+        let screenFrame = screen.frame
+        let panelSize = panel.frame.size
+
+        // Convert stored area coords (display-relative, top-left origin)
+        // back to screen coords (bottom-left origin)
+        let areaScreenX = screenFrame.origin.x + CGFloat(settings.areaX)
+        let areaScreenBottom = screenFrame.maxY - CGFloat(settings.areaY) - CGFloat(settings.areaHeight)
+
+        // Center card horizontally under the selection, 12pt gap below
+        let centerX = areaScreenX + CGFloat(settings.areaWidth) / 2
+        let x = centerX - panelSize.width / 2
+        let y = areaScreenBottom - panelSize.height - 12
+
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
     func dismiss() {
@@ -359,6 +399,8 @@ private struct DisplayInfoCardContent: View {
         Group {
             if appState.recorderToolbarSettings.captureMode == .window {
                 windowCardContent(appState: appState)
+            } else if appState.recorderToolbarSettings.captureMode == .area {
+                areaCardContent(appState: appState)
             } else {
                 defaultCardContent(appState: appState)
             }
@@ -434,6 +476,187 @@ private struct DisplayInfoCardContent: View {
             RecordingStartSplitButton(appState: appState)
         }
     }
+
+    @ViewBuilder
+    private func areaCardContent(appState: AppState) -> some View {
+        VStack(spacing: 10) {
+            // Size row: width × height
+            HStack(spacing: 8) {
+                Text("Size")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .frame(width: 48, alignment: .leading)
+
+                AreaDimensionField(value: Binding(
+                    get: { appState.recorderToolbarSettings.areaWidth },
+                    set: { newValue in
+                        appState.recorderToolbarSettings.areaWidth = newValue
+                        appState.applyAreaAspectRatioFromWidth()
+                        appState.recorderToolbarSettings.save()
+                    }
+                ))
+
+                Text("×")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.55))
+
+                AreaDimensionField(value: Binding(
+                    get: { appState.recorderToolbarSettings.areaHeight },
+                    set: { newValue in
+                        appState.recorderToolbarSettings.areaHeight = newValue
+                        appState.applyAreaAspectRatioFromHeight()
+                        appState.recorderToolbarSettings.save()
+                    }
+                ))
+
+                Text("px")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+
+            // Position row: x, y
+            HStack(spacing: 8) {
+                Text("Position")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .frame(width: 48, alignment: .leading)
+
+                AreaDimensionField(value: Binding(
+                    get: { appState.recorderToolbarSettings.areaX },
+                    set: { newValue in
+                        appState.recorderToolbarSettings.areaX = newValue
+                        appState.recorderToolbarSettings.save()
+                    }
+                ))
+
+                Spacer()
+                    .frame(width: 13)
+
+                AreaDimensionField(value: Binding(
+                    get: { appState.recorderToolbarSettings.areaY },
+                    set: { newValue in
+                        appState.recorderToolbarSettings.areaY = newValue
+                        appState.recorderToolbarSettings.save()
+                    }
+                ))
+
+                Text("px")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+
+            // Aspect ratio & Saved dropdowns
+            HStack(spacing: 10) {
+                AreaAspectRatioMenuButton(appState: appState)
+                AreaSavedDimensionsMenuButton(appState: appState)
+            }
+
+            RecordingStartSplitButton(appState: appState)
+        }
+    }
+}
+
+// MARK: - Area Card Components
+
+/// Numeric input field for area dimension (width/height/x/y).
+private struct AreaDimensionField: View {
+    @Binding var value: Int
+
+    var body: some View {
+        TextField("", value: $value, format: .number)
+            .textFieldStyle(.plain)
+            .font(.system(size: 14, weight: .medium, design: .monospaced))
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .frame(width: 64, height: 30)
+            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+            )
+    }
+}
+
+/// Dropdown for selecting area aspect ratio.
+private struct AreaAspectRatioMenuButton: View {
+    var appState: AppState
+
+    var body: some View {
+        Menu {
+            ForEach(RecorderToolbarSettings.AreaAspectRatio.allCases) { ratio in
+                Button {
+                    appState.recorderToolbarSettings.areaAspectRatio = ratio
+                    appState.applyAreaAspectRatioFromWidth()
+                    appState.recorderToolbarSettings.save()
+                } label: {
+                    HStack {
+                        if appState.recorderToolbarSettings.areaAspectRatio == ratio {
+                            Image(systemName: "checkmark")
+                        }
+                        Image(systemName: ratio.icon)
+                        Text(ratio.label)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: appState.recorderToolbarSettings.areaAspectRatio.icon)
+                    .font(.system(size: 11, weight: .medium))
+                Text(appState.recorderToolbarSettings.areaAspectRatio.label)
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(.white.opacity(0.78))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
+        .fixedSize()
+    }
+}
+
+/// Dropdown for saved area dimensions.
+private struct AreaSavedDimensionsMenuButton: View {
+    var appState: AppState
+
+    var body: some View {
+        Menu {
+            if appState.recorderToolbarSettings.savedAreaDimensions.isEmpty {
+                Text("No saved dimensions")
+            } else {
+                ForEach(appState.recorderToolbarSettings.savedAreaDimensions) { dim in
+                    Button {
+                        appState.recorderToolbarSettings.areaWidth = dim.width
+                        appState.recorderToolbarSettings.areaHeight = dim.height
+                        appState.recorderToolbarSettings.save()
+                    } label: {
+                        Text(dim.label)
+                    }
+                }
+
+                Divider()
+            }
+
+            Button("Save current dimensions") {
+                appState.saveCurrentAreaDimension()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "rectangle.stack")
+                    .font(.system(size: 11, weight: .medium))
+                Text("Saved")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(.white.opacity(0.78))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .menuStyle(.borderlessButton)
+        .buttonStyle(.plain)
+        .fixedSize()
+    }
 }
 
 private struct WindowResizeMenuButton: View {
@@ -491,6 +714,7 @@ private struct WindowResizeMenuButton: View {
         }
         .menuStyle(.borderlessButton)
         .buttonStyle(.plain)
+        .fixedSize()
         .sheet(
             isPresented: Binding(
                 get: { appState.showWindowCustomSizeSheet },

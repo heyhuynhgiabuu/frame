@@ -37,6 +37,7 @@
 		8E7D489357B382F2E1E10CFE /* ToolbarItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CA60154BBFD793DE82EBA8 /* ToolbarItems.swift */; };
 		908DBB8A4EA1EE88957706FD /* ZoomEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B791A634BCAAEB6B5D572B69 /* ZoomEngine.swift */; };
 		9210E8E9964179D638EE99D7 /* VideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC9BA31FF13B3B87BC2B2A53 /* VideoPlayerView.swift */; };
+		96814AE5A6A5824132D4C0B1 /* AreaSelectionPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBD44C799FE88196A12E860 /* AreaSelectionPanel.swift */; };
 		9D1C4F48F1C55BDE23E03A3D /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33EE56E9E0FA48952E66A88E /* TimelineView.swift */; };
 		9EDB5C933F0EAE632129DC86 /* SourcePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 447909B73893B1B16C6AC844 /* SourcePicker.swift */; };
 		B54E81F35AF32FBE57ECE5C8 /* WebcamInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA002E72CBE0459094B5186A /* WebcamInspector.swift */; };
@@ -76,6 +77,7 @@
 		854352E3DBCB89D1266ECEC9 /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
 		89C3F178A328471703458391 /* AudioInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInspector.swift; sourceTree = "<group>"; };
 		95837CDAAAA70B0C5883AC6A /* WebcamPreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamPreviewPanel.swift; sourceTree = "<group>"; };
+		9FBD44C799FE88196A12E860 /* AreaSelectionPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AreaSelectionPanel.swift; path = Frame/Overlay/AreaSelectionPanel.swift; sourceTree = SOURCE_ROOT; };
 		A7CA60154BBFD793DE82EBA8 /* ToolbarItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarItems.swift; sourceTree = "<group>"; };
 		AA002E72CBE0459094B5186A /* WebcamInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamInspector.swift; sourceTree = "<group>"; };
 		B01F1F58999CBABB92873A62 /* RecordingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingConfig.swift; sourceTree = "<group>"; };
@@ -277,6 +279,7 @@
 				630890366A72054798E58494 /* OverlayManager.swift */,
 				4DF64E2264CECE9A459241E5 /* RecordingToolbarPanel.swift */,
 				95837CDAAAA70B0C5883AC6A /* WebcamPreviewPanel.swift */,
+				9FBD44C799FE88196A12E860 /* AreaSelectionPanel.swift */,
 			);
 			path = Overlay;
 			sourceTree = "<group>";
@@ -385,6 +388,7 @@
 				B63094B8407D21048982FAE1 /* ZoomInspector.swift in Sources */,
 				EEF7471AB21FA78798F1DA56 /* MicLevelMonitor.swift in Sources */,
 				17554693A6B7416930EC06FC /* MicLevelBar.swift in Sources */,
+				96814AE5A6A5824132D4C0B1 /* AreaSelectionPanel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

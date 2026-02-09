@@ -126,7 +126,6 @@ final class ScreenRecorder: NSObject, ObservableObject {
                 throw RecordingError.noDisplayAvailable
             }
             display = selectedDisplay
-            logger.warning("Area capture selected but area picker is unavailable; using full display")
             let appsToInclude = availableApplications.filter {
                 $0.bundleIdentifier != Bundle.main.bundleIdentifier
             }

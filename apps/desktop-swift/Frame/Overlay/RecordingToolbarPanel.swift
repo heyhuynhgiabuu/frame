@@ -282,6 +282,7 @@ struct RecordingToolbarContent: View {
         }
         .menuStyle(.borderlessButton)
         .buttonStyle(.plain)
+        .fixedSize()
         .help("Select display to record")
     }
 
@@ -849,7 +850,9 @@ struct RecordingStartSplitButton: View {
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .buttonStyle(.plain)
+            .fixedSize()
         }
         .background(
             appState.isStartingRecording ? .red.opacity(0.5) : .red,

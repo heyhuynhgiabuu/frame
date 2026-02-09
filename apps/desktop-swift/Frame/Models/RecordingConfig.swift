@@ -14,6 +14,9 @@ struct RecordingConfig {
     /// Selected window (for window capture mode)
     var selectedWindow: SCWindow?
 
+    /// Area rect for area capture (in display-relative points, top-left origin)
+    var areaRect: CGRect?
+
     /// Preferred output resolution for window capture (nil = native window size)
     var windowOutputSize: CGSize?
 
@@ -76,12 +79,31 @@ struct RecordingConfig {
     func makeStreamConfiguration(for display: SCDisplay) -> SCStreamConfiguration {
         let config = SCStreamConfiguration()
 
-        // Resolution: account for retina
-        let baseWidth = Int(CGFloat(display.width) * scaleFactor)
-        let baseHeight = Int(CGFloat(display.height) * scaleFactor)
-        let clampedSize = RecordingConfig.clampedVideoSize(width: baseWidth, height: baseHeight)
-        config.width = clampedSize.width
-        config.height = clampedSize.height
+        if captureType == .area, let area = areaRect {
+            // Area capture: use sourceRect to crop and size output to area dimensions
+            // Clamp sourceRect to display bounds to avoid "invalid parameter" errors
+            let displayW = CGFloat(display.width)
+            let displayH = CGFloat(display.height)
+            let clampedX = max(0, min(area.origin.x, displayW - 1))
+            let clampedY = max(0, min(area.origin.y, displayH - 1))
+            let clampedW = max(2, min(area.width, displayW - clampedX))
+            let clampedH = max(2, min(area.height, displayH - clampedY))
+            let safeRect = CGRect(x: clampedX, y: clampedY, width: clampedW, height: clampedH)
+
+            config.sourceRect = safeRect
+            let areaWidth = Int(safeRect.width * scaleFactor)
+            let areaHeight = Int(safeRect.height * scaleFactor)
+            let clampedSize = RecordingConfig.clampedVideoSize(width: areaWidth, height: areaHeight)
+            config.width = clampedSize.width
+            config.height = clampedSize.height
+        } else {
+            // Full display: capture entire screen
+            let baseWidth = Int(CGFloat(display.width) * scaleFactor)
+            let baseHeight = Int(CGFloat(display.height) * scaleFactor)
+            let clampedSize = RecordingConfig.clampedVideoSize(width: baseWidth, height: baseHeight)
+            config.width = clampedSize.width
+            config.height = clampedSize.height
+        }
 
         config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
         config.showsCursor = showsCursor
