@@ -32,7 +32,7 @@ final class OverlayManager {
 
         // Only show webcam preview if webcam is running and preview is enabled
         if appState.webcamEngine.isRunning && !appState.recorderToolbarSettings.hideCameraPreview {
-            webcamPreview.show(webcamEngine: appState.webcamEngine, on: screen)
+            webcamPreview.show(webcamEngine: appState.webcamEngine, appState: appState, on: screen)
         }
 
         isShowing = true
@@ -59,10 +59,22 @@ final class OverlayManager {
         guard isShowing else { return }
 
         if appState.webcamEngine.isRunning && !appState.recorderToolbarSettings.hideCameraPreview {
-            webcamPreview.show(webcamEngine: appState.webcamEngine)
+            webcamPreview.show(webcamEngine: appState.webcamEngine, appState: appState)
         } else {
             webcamPreview.dismiss()
         }
+    }
+
+    /// Resizes the webcam preview panel for full-frame (16:9) or square (1:1) mode.
+    func resizeWebcamPreview(fullFrame: Bool) {
+        let newSize = fullFrame ? NSSize(width: 200, height: 112) : NSSize(width: 200, height: 200)
+        guard let window = webcamPreview.nsWindow else { return }
+        var frame = window.frame
+        let heightDelta = newSize.height - frame.size.height
+        frame.size = newSize
+        // Adjust origin so the panel grows/shrinks from the bottom edge
+        frame.origin.y -= heightDelta
+        window.setFrame(frame, display: true, animate: true)
     }
 
     func updateDisplayCardVisibility(appState: AppState) {

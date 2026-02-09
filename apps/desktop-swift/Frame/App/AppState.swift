@@ -80,6 +80,7 @@ struct RecorderToolbarSettings {
     var cameraDeviceID: String?
     var cameraResolution: CameraResolution = .p1080
     var hideCameraPreview = false
+    var fullFrameWebcamPreview = true
     var recordCamera = true
     var microphoneDeviceID: String?
     var reduceNoiseAndNormalizeVolume = false
@@ -106,6 +107,9 @@ struct RecorderToolbarSettings {
         }
         if defaults.object(forKey: "toolbar.camera.hidePreview") != nil {
             settings.hideCameraPreview = defaults.bool(forKey: "toolbar.camera.hidePreview")
+        }
+        if defaults.object(forKey: "toolbar.camera.fullFramePreview") != nil {
+            settings.fullFrameWebcamPreview = defaults.bool(forKey: "toolbar.camera.fullFramePreview")
         }
         if defaults.object(forKey: "toolbar.camera.record") != nil {
             settings.recordCamera = defaults.bool(forKey: "toolbar.camera.record")
@@ -145,6 +149,7 @@ struct RecorderToolbarSettings {
         defaults.set(cameraDeviceID, forKey: "toolbar.camera.deviceID")
         defaults.set(cameraResolution.rawValue, forKey: "toolbar.camera.resolution")
         defaults.set(hideCameraPreview, forKey: "toolbar.camera.hidePreview")
+        defaults.set(fullFrameWebcamPreview, forKey: "toolbar.camera.fullFramePreview")
         defaults.set(recordCamera, forKey: "toolbar.camera.record")
         defaults.set(microphoneDeviceID, forKey: "toolbar.microphone.deviceID")
         defaults.set(reduceNoiseAndNormalizeVolume, forKey: "toolbar.microphone.reduceNoiseAndNormalize")

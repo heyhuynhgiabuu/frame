@@ -9,19 +9,25 @@ import SwiftUI
 final class WebcamPreviewPanel {
     private var panel: FloatingPanel<WebcamPreviewContent>?
 
-    private static let defaultSize = NSSize(width: 200, height: 150)
+    /// Full-frame: 16:9 rectangular (matches webcam). Square: 1:1 (center-cropped).
+    private static let fullFrameSize = NSSize(width: 200, height: 112)
+    private static let squareSize = NSSize(width: 200, height: 200)
 
     @MainActor
     func show(
         webcamEngine: WebcamCaptureEngine,
+        appState: AppState,
         on screen: NSScreen? = nil
     ) {
         // Don't create a new panel if one is already visible
         if panel != nil { return }
 
-        let content = WebcamPreviewContent(webcamEngine: webcamEngine)
+        let isFullFrame = appState.recorderToolbarSettings.fullFrameWebcamPreview
+        let panelSize = isFullFrame ? Self.fullFrameSize : Self.squareSize
+
+        let content = WebcamPreviewContent(webcamEngine: webcamEngine, appState: appState)
         let panel = FloatingPanel(
-            contentRect: NSRect(origin: .zero, size: Self.defaultSize)
+            contentRect: NSRect(origin: .zero, size: panelSize)
         ) {
             content
         }
@@ -53,18 +59,28 @@ final class WebcamPreviewPanel {
 
 struct WebcamPreviewContent: View {
     var webcamEngine: WebcamCaptureEngine
+    var appState: AppState
+
+    private var isFullFrame: Bool {
+        appState.recorderToolbarSettings.fullFrameWebcamPreview
+    }
+
+    /// Full-frame: 16:9 rectangular. Square: 1:1 (center-cropped).
+    private var previewSize: NSSize {
+        isFullFrame ? NSSize(width: 200, height: 112) : NSSize(width: 200, height: 200)
+    }
 
     var body: some View {
         ZStack {
             if webcamEngine.isRunning {
                 CIImageView(frameBox: webcamEngine.frameBox)
-                    .frame(width: 200, height: 150)
+                    .frame(width: previewSize.width, height: previewSize.height)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             } else {
                 // Placeholder when no camera feed
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(.black.opacity(0.6))
-                    .frame(width: 200, height: 150)
+                    .frame(width: previewSize.width, height: previewSize.height)
                     .overlay {
                         VStack(spacing: 8) {
                             Image(systemName: "video.slash.fill")
@@ -77,7 +93,26 @@ struct WebcamPreviewContent: View {
                     }
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: isFullFrame)
         .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 4)
+        .contextMenu {
+            Toggle(
+                "Full-frame webcam preview",
+                isOn: Binding(
+                    get: { appState.recorderToolbarSettings.fullFrameWebcamPreview },
+                    set: { newValue in
+                        appState.recorderToolbarSettings.fullFrameWebcamPreview = newValue
+                        appState.recorderToolbarSettings.save()
+                        // Resize the panel window to match the new preview size
+                        appState.overlayManager.resizeWebcamPreview(fullFrame: newValue)
+                    }
+                )
+            )
+
+            Button("Hide camera preview") {
+                appState.setHideCameraPreview(true)
+            }
+        }
     }
 }
 

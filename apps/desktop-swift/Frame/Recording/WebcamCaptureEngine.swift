@@ -321,6 +321,7 @@ extension WebcamCaptureEngine: AVCaptureVideoDataOutputSampleBufferDelegate {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            .oriented(.upMirrored)
 
         // Store for thread-safe access by CIImageView display link (live preview)
         frameBox.snapshot = WebcamFrameSnapshot(image: ciImage, capturedAt: CACurrentMediaTime())
