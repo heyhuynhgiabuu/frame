@@ -8,7 +8,7 @@
       "category": "backend",
       "description": "Create ZoomSegment struct and add zoomSegments array to EffectsConfig.",
       "steps": ["Build app, no errors", "Verify EffectsConfig encodes/decodes zoomSegments"],
-      "passes": false,
+      "passes": true,
       "metadata": {
         "depends_on": [],
         "parallel": true,
@@ -26,7 +26,7 @@
         "Verify blocks positioned correctly by time",
         "Verify disabled zooms at 40% opacity"
       ],
-      "passes": false,
+      "passes": true,
       "metadata": {
         "depends_on": ["Add ZoomSegment data model"],
         "parallel": false,
@@ -45,7 +45,7 @@
         "Right-click, menu appears",
         "Disable/Remove work correctly"
       ],
-      "passes": false,
+      "passes": true,
       "metadata": {
         "depends_on": ["Render zoom blocks on timeline"],
         "parallel": false,
@@ -63,7 +63,7 @@
         "Toggle zoom enabled/disabled",
         "Delete button removes zoom"
       ],
-      "passes": false,
+      "passes": true,
       "metadata": {
         "depends_on": ["Add ZoomSegment data model"],
         "parallel": true,
@@ -81,7 +81,7 @@
         "Manual and auto-zooms both work",
         "Smooth transitions maintained"
       ],
-      "passes": false,
+      "passes": true,
       "metadata": {
         "depends_on": ["Add ZoomSegment data model"],
         "parallel": false,

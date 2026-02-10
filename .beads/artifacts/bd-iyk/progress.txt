@@ -51,3 +51,27 @@ Zoom blocks should layer between waveform and progress fill.
 - Task 4: Update Zoom Inspector with zoom list
 - Task 5: Update ZoomEngine to use zoomSegments
 
+### 2026-02-10: All Tasks Complete
+
+**Task 3: Add zoom interactions** ✓
+- Double-click on timeline to add new zoom (2-second default duration)
+- Drag zoom block body to move in time
+- Drag left/right edges to resize duration
+- Right-click context menu (Enable/Disable, Remove)
+- Resize handles with white indicators
+
+**Task 4: Update Zoom Inspector** ✓
+- List view of all zoom segments
+- Enable/disable toggle per segment
+- Time range display (MM:SS format)
+- Scale and type (Auto/Manual) info
+- Delete button per segment
+
+**Task 5: Update ZoomEngine** ✓
+- Check zoomSegments first before cursor-based auto-zoom
+- Manual zooms use segment scale and duration
+- Auto-zooms still work as fallback
+- Smooth transitions for both types
+
+**Build Status:** SUCCEEDED
+
