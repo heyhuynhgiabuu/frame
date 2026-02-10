@@ -90,6 +90,14 @@ struct EffectsConfig: Codable {
     var keystrokeDisplayDuration: Double = 1.5
     var keystrokesOnlyShortcuts: Bool = false
 
+    // Captions
+    var captionsEnabled: Bool = false
+    var captionFontSize: Double = 24           // points
+    var captionSegments: [CaptionSegment] = []
+    var captionModel: WhisperModel = .base
+    var captionLanguage: TranscriptionLanguage = .auto
+    var captionPrompt: String = ""
+
     static let `default` = EffectsConfig()
 }
 

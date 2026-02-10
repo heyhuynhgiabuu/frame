@@ -43,6 +43,10 @@
 		9EDB5C933F0EAE632129DC86 /* SourcePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 447909B73893B1B16C6AC844 /* SourcePicker.swift */; };
 		B54E81F35AF32FBE57ECE5C8 /* WebcamInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA002E72CBE0459094B5186A /* WebcamInspector.swift */; };
 		B63094B8407D21048982FAE1 /* ZoomInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A1D7FB7BAC9248A4F7088C /* ZoomInspector.swift */; };
+		CA11A1B2C3D4E5F607080910 /* WhisperTranscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA01A1B2C3D4E5F607080910 /* WhisperTranscription.swift */; };
+		CA12A1B2C3D4E5F607080910 /* CaptionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA02A1B2C3D4E5F607080910 /* CaptionOverlayView.swift */; };
+		CA13A1B2C3D4E5F607080910 /* CaptionsInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA03A1B2C3D4E5F607080910 /* CaptionsInspector.swift */; };
+		CA14A1B2C3D4E5F607080910 /* TranscriptEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA04A1B2C3D4E5F607080910 /* TranscriptEditor.swift */; };
 		E07362BF274B4D5347EE0ED7 /* PlaybackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F75D71B885375C89AD068111 /* PlaybackEngine.swift */; };
 		E7B519873B9C7189719B3727 /* WebcamOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6AF8E10E02234C3DC8EB79 /* WebcamOverlayView.swift */; };
 		ECE643B012AFD5E3744012D5 /* RecordingToolbarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF64E2264CECE9A459241E5 /* RecordingToolbarPanel.swift */; };
@@ -99,6 +103,10 @@
 		FBFD2E6B72EFF28F0FD15770 /* FrameApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameApp.swift; sourceTree = "<group>"; };
 		FC9BA31FF13B3B87BC2B2A53 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
 		AFCA121E581340D59555B182 /* AudioWaveformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioWaveformGenerator.swift; sourceTree = "<group>"; };
+		CA01A1B2C3D4E5F607080910 /* WhisperTranscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperTranscription.swift; sourceTree = "<group>"; };
+		CA02A1B2C3D4E5F607080910 /* CaptionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionOverlayView.swift; sourceTree = "<group>"; };
+		CA03A1B2C3D4E5F607080910 /* CaptionsInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionsInspector.swift; sourceTree = "<group>"; };
+		CA04A1B2C3D4E5F607080910 /* TranscriptEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptEditor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -112,6 +120,15 @@
 			);
 			sourceTree = "<group>";
 		};
+		CA05A1B2C3D4E5F607080910 /* Captions */ = {
+			isa = PBXGroup;
+			children = (
+				CA02A1B2C3D4E5F607080910 /* CaptionOverlayView.swift */,
+				CA01A1B2C3D4E5F607080910 /* WhisperTranscription.swift */,
+			);
+			path = Captions;
+			sourceTree = "<group>";
+		};
 		201363C5908607A3A101B96D /* Editor */ = {
 			isa = PBXGroup;
 			children = (
@@ -121,6 +138,7 @@
 				0108D09BBAE7279BD48F2766 /* KeystrokeOverlayView.swift */,
 				B07E4178CF090EDE56BD68CE /* PreviewCanvas.swift */,
 				33EE56E9E0FA48952E66A88E /* TimelineView.swift */,
+				CA04A1B2C3D4E5F607080910 /* TranscriptEditor.swift */,
 				7A6AF8E10E02234C3DC8EB79 /* WebcamOverlayView.swift */,
 			);
 			path = Editor;
@@ -177,6 +195,7 @@
 			children = (
 				89C3F178A328471703458391 /* AudioInspector.swift */,
 				13122695FD91C0E361ADCE77 /* BackgroundInspector.swift */,
+				CA03A1B2C3D4E5F607080910 /* CaptionsInspector.swift */,
 				E68E742B61ECCDFDDD0EFEE1 /* CursorInspector.swift */,
 				D462B3A262661F29D8AEA719 /* InspectorComponents.swift */,
 				66CD6F1A35F981CDA30399FE /* KeyboardInspector.swift */,
@@ -241,6 +260,7 @@
 			isa = PBXGroup;
 			children = (
 				610FF7D055437766C073C304 /* App */,
+				CA05A1B2C3D4E5F607080910 /* Captions */,
 				67333C7BA281D720521A8176 /* Effects */,
 				AB5A3241196EC1636835A248 /* Export */,
 				3DEB22D4CA3988FE7DB29F97 /* Models */,
@@ -358,6 +378,8 @@
 				132F7DD49BF30FD6716CE5CC /* AppState.swift in Sources */,
 				5E8E6E57E194FAE5B31C07FD /* AudioInspector.swift in Sources */,
 				44A0CAEE479E42D60CC58369 /* BackgroundInspector.swift in Sources */,
+				CA12A1B2C3D4E5F607080910 /* CaptionOverlayView.swift in Sources */,
+				CA13A1B2C3D4E5F607080910 /* CaptionsInspector.swift in Sources */,
 				148DCF9EA9A1413EA9925572 /* ContentView.swift in Sources */,
 				2AA15B38918DCD207451BCA0 /* CursorInspector.swift in Sources */,
 				296A74714EEF72AADD00A32D /* CursorOverlayView.swift in Sources */,
@@ -387,11 +409,13 @@
 				9EDB5C933F0EAE632129DC86 /* SourcePicker.swift in Sources */,
 				9D1C4F48F1C55BDE23E03A3D /* TimelineView.swift in Sources */,
 				8E7D489357B382F2E1E10CFE /* ToolbarItems.swift in Sources */,
+				CA14A1B2C3D4E5F607080910 /* TranscriptEditor.swift in Sources */,
 				9210E8E9964179D638EE99D7 /* VideoPlayerView.swift in Sources */,
 				14E4BEAF96713BB76B8DCDA6 /* WebcamCaptureEngine.swift in Sources */,
 				B54E81F35AF32FBE57ECE5C8 /* WebcamInspector.swift in Sources */,
 				E7B519873B9C7189719B3727 /* WebcamOverlayView.swift in Sources */,
 				2CB13829D7FBC83CF91CFD12 /* WebcamPreviewPanel.swift in Sources */,
+				CA11A1B2C3D4E5F607080910 /* WhisperTranscription.swift in Sources */,
 				908DBB8A4EA1EE88957706FD /* ZoomEngine.swift in Sources */,
 				B63094B8407D21048982FAE1 /* ZoomInspector.swift in Sources */,
 				EEF7471AB21FA78798F1DA56 /* MicLevelMonitor.swift in Sources */,

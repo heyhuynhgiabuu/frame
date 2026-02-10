@@ -1,0 +1,120 @@
+{
+  "beadId": "bd-299",
+  "prdName": "ai-captions-transcription-inspector",
+  "tasks": [
+    {
+      "id": "backend-1",
+      "category": "backend",
+      "description": "Integrate Whisper with Swift wrapper for local transcription.",
+      "steps": [
+        "Build app, Whisper loads",
+        "Test transcription on sample audio",
+        "Verify different models work"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["Frame/Captions/WhisperTranscription.swift"]
+      }
+    },
+    {
+      "id": "backend-2",
+      "category": "backend",
+      "description": "Create CaptionSegment struct and add caption settings to EffectsConfig.",
+      "steps": [
+        "CaptionSegment struct created",
+        "EffectsConfig has caption properties",
+        "Encoding/decoding works"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["Frame/Models/Project.swift"]
+      }
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Build inspector panel with model selector, language picker, prompt input, generate button.",
+      "steps": [
+        "Open Inspector, see all controls",
+        "Model selector works",
+        "Language picker works",
+        "Generate button triggers transcription"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["backend-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Views/Editor/Inspector/CaptionsInspector.swift"]
+      }
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Render captions on preview canvas with timing sync.",
+      "steps": [
+        "Captions visible on preview",
+        "Sync with audio timing",
+        "Size slider adjusts text"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["backend-2"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "Frame/Captions/CaptionOverlayView.swift",
+          "Frame/Views/Editor/PreviewCanvas.swift"
+        ]
+      }
+    },
+    {
+      "id": "ui-3",
+      "category": "ui",
+      "description": "Build text editor for correcting transcription errors.",
+      "steps": ["Edit button opens editor", "Changes save correctly", "Export to .srt works"],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["ui-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Views/Editor/TranscriptEditor.swift"]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Inspector panels: Frame/Views/Editor/Inspector/ with @Binding effects",
+      "Audio extraction: AudioWaveformGenerator.swift uses AVAssetReader",
+      "Preview overlays: KeystrokeOverlayView.swift for text overlay on preview",
+      "State: @Observable AppState singleton, @MainActor"
+    ],
+    "keyFiles": [
+      "Frame/Models/Project.swift",
+      "Frame/Views/Editor/PreviewCanvas.swift",
+      "Frame/Views/Editor/Inspector/",
+      "Frame/Recording/AudioWaveformGenerator.swift",
+      "Frame/Views/Editor/KeystrokeOverlayView.swift"
+    ],
+    "nonGoals": [
+      "Real-time captioning during recording",
+      "Third-party transcription services",
+      "Caption styling (fonts, colors, backgrounds)",
+      "Multi-language captions in one video",
+      "Caption animation effects"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": [],
+    "parallel": true,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 6
+  }
+}
