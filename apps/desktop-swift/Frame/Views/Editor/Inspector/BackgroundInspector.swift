@@ -63,6 +63,34 @@ struct BackgroundInspector: View {
                 }
             }
 
+            // Section: Wallpaper Presets (when wallpaper selected)
+            if effects.backgroundType == .wallpaper {
+                inspectorSection("Preset") {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) {
+                        ForEach(WallpaperPreset.allPresets) { preset in
+                            Button(action: { effects.wallpaperPresetID = preset.id }) {
+                                Image(preset.imageName)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(height: 50)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .strokeBorder(
+                                                effects.wallpaperPresetID == preset.id
+                                                    ? Color.frameAccent
+                                                    : Color.clear,
+                                                lineWidth: 2
+                                            )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .help(preset.name)
+                        }
+                    }
+                }
+            }
+
             Divider()
 
             // Section: Padding
@@ -119,6 +147,26 @@ struct BackgroundInspector: View {
             }
         }
     }
+}
+
+// MARK: - Wallpaper Presets
+
+struct WallpaperPreset: Identifiable {
+    let id: String
+    let name: String
+    let imageName: String
+
+    static let allPresets: [WallpaperPreset] = [
+        WallpaperPreset(id: "sunset", name: "Sunset", imageName: "WallpaperThumbnails/sunset"),
+        WallpaperPreset(id: "ocean", name: "Ocean", imageName: "WallpaperThumbnails/ocean"),
+        WallpaperPreset(id: "forest", name: "Forest", imageName: "WallpaperThumbnails/forest"),
+        WallpaperPreset(id: "lavender", name: "Lavender", imageName: "WallpaperThumbnails/lavender"),
+        WallpaperPreset(id: "midnight", name: "Midnight", imageName: "WallpaperThumbnails/midnight"),
+        WallpaperPreset(id: "dark", name: "Dark", imageName: "WallpaperThumbnails/dark"),
+        WallpaperPreset(id: "light", name: "Light", imageName: "WallpaperThumbnails/light"),
+        WallpaperPreset(id: "warm", name: "Warm", imageName: "WallpaperThumbnails/warm"),
+        WallpaperPreset(id: "mesh", name: "Mesh", imageName: "WallpaperThumbnails/mesh"),
+    ]
 }
 
 // MARK: - Gradient Presets

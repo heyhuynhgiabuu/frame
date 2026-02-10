@@ -1,0 +1,92 @@
+{
+  "beadId": "bd-3lk",
+  "prdName": "wallpaper-thumbnail-presets",
+  "tasks": [
+    {
+      "id": "assets-1",
+      "title": "Create wallpaper thumbnail images",
+      "category": "assets",
+      "description": "Create 8-10 thumbnail images (80x80pt @2x = 160x160px) representing different background styles: gradients, solids, and subtle patterns.",
+      "steps": [
+        "Images created in appropriate format (PNG or WebP)",
+        "Images are 160x160px (80pt @2x)",
+        "Total file size <500KB"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": []
+      }
+    },
+    {
+      "id": "setup-1",
+      "title": "Add thumbnail assets to Xcode project",
+      "category": "setup",
+      "description": "Add thumbnail images to Assets.xcassets/WallpaperThumbnails/ and ensure they are included in the app target.",
+      "steps": [
+        "Build app, verify no asset warnings",
+        "Check Frame.app/Contents/Resources/Assets.car contains thumbnails"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": ["Create wallpaper thumbnail images"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "Frame/Resources/Assets.xcassets/WallpaperThumbnails/",
+          "Frame.xcodeproj/project.pbxproj"
+        ]
+      }
+    },
+    {
+      "id": "ui-1",
+      "title": "Replace color swatches with thumbnail grid",
+      "category": "ui",
+      "description": "Update BackgroundInspector.swift to display thumbnail images instead of color swatches in the preset grid.",
+      "steps": [
+        "Build app, open Editor",
+        "Open Background inspector",
+        "Verify thumbnail grid displays (8-10 images)",
+        "Tap each thumbnail, verify background applies correctly",
+        "Verify selected thumbnail shows highlight border"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": ["Add thumbnail assets to Xcode project"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": [
+          "Frame/Views/Editor/Inspector/BackgroundInspector.swift",
+          "Frame/Models/Project.swift"
+        ]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Background Inspector: Frame/Views/Editor/Inspector/BackgroundInspector.swift",
+      "Background types: .gradient, .solid, .wallpaper, .image",
+      "Asset catalog: Assets.xcassets for bundled images",
+      "Selection tracking: effects.backgroundType, effects.wallpaperPresetID"
+    ],
+    "keyFiles": [
+      "Frame/Views/Editor/Inspector/BackgroundInspector.swift",
+      "Frame/Models/Project.swift"
+    ],
+    "nonGoals": [
+      "User-uploaded custom wallpapers",
+      "Dynamic wallpaper generation",
+      "Animated/live wallpapers",
+      "macOS dynamic desktop wallpapers"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": ["bd-13v"],
+    "parallel": true,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 2
+  }
+}
