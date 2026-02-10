@@ -34,11 +34,13 @@ final class ExportEngine: ObservableObject {
         .useSoftwareRenderer: false,     // Use GPU
         .highQualityDownsample: true
     ])
+    private let gifExporter = GIFExporter()
 
     // MARK: - Cancel
 
     func cancel() {
         exportTask?.cancel()
+        gifExporter.cancel()
         exportTask = nil
         isExporting = false
         progress = 0
@@ -69,12 +71,22 @@ final class ExportEngine: ObservableObject {
 
         exportTask = Task {
             do {
-                try await performExport(
-                    sourceURL: sourceURL,
-                    outputURL: outputURL,
-                    config: config,
-                    effects: project.effects
-                )
+                // Branch based on export format
+                if config.format == .gif {
+                    try await performGIFExport(
+                        sourceURL: sourceURL,
+                        outputURL: outputURL,
+                        config: config,
+                        effects: project.effects
+                    )
+                } else {
+                    try await performVideoExport(
+                        sourceURL: sourceURL,
+                        outputURL: outputURL,
+                        config: config,
+                        effects: project.effects
+                    )
+                }
                 self.currentPhase = .complete
                 self.progress = 1.0
                 logger.info("Export complete: \(outputURL.lastPathComponent)")
@@ -90,9 +102,38 @@ final class ExportEngine: ObservableObject {
         }
     }
 
+    // MARK: - GIF Export
+
+    private func performGIFExport(
+        sourceURL: URL,
+        outputURL: URL,
+        config: ExportConfig,
+        effects: EffectsConfig
+    ) async throws {
+        await MainActor.run {
+            self.currentPhase = .rendering
+        }
+
+        try await gifExporter.export(
+            sourceURL: sourceURL,
+            outputURL: outputURL,
+            config: config,
+            effects: effects
+        ) { [weak self] (progress: GIFExporter.ExportProgress) in
+            Task { @MainActor in
+                self?.progress = progress.percentage
+            }
+        }
+
+        await MainActor.run {
+            self.currentPhase = .finalizing
+            self.progress = 0.95
+        }
+    }
+
     // MARK: - Core Pipeline
 
-    private func performExport(
+    private func performVideoExport(
         sourceURL: URL,
         outputURL: URL,
         config: ExportConfig,

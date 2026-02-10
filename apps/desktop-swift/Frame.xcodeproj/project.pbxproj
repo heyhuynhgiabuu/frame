@@ -23,6 +23,7 @@
 		44A0CAEE479E42D60CC58369 /* BackgroundInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13122695FD91C0E361ADCE77 /* BackgroundInspector.swift */; };
 		51CEEED7A8F8B80B1E467D1F /* OverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630890366A72054798E58494 /* OverlayManager.swift */; };
 		56EA02E4257412565FF00041 /* ExportConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3694BE04A7CBD8201C7867BC /* ExportConfig.swift */; };
+		AB12CD3425EF1234567890AB /* GIFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC23DE4526EF2345678901BC /* GIFExporter.swift */; };
 		5E8E6E57E194FAE5B31C07FD /* AudioInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C3F178A328471703458391 /* AudioInspector.swift */; };
 		5F784FB0149DB29DEA464595 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C1C6DCAE75A17A8FC3D5A3 /* ExportView.swift */; };
 		6666A8761D6A7225EF31AF6F /* Permissions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854352E3DBCB89D1266ECEC9 /* Permissions.swift */; };
@@ -62,6 +63,7 @@
 		21705F20EB300E04D2540878 /* Frame.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Frame.entitlements; sourceTree = "<group>"; };
 		33EE56E9E0FA48952E66A88E /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
 		3694BE04A7CBD8201C7867BC /* ExportConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportConfig.swift; sourceTree = "<group>"; };
+		BC23DE4526EF2345678901BC /* GIFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GIFExporter.swift; sourceTree = "<group>"; };
 		389E0B431E77E80D8D8D132F /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		38E8844D2CF7061FA83F9825 /* CursorOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorOverlayView.swift; sourceTree = "<group>"; };
 		447909B73893B1B16C6AC844 /* SourcePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcePicker.swift; sourceTree = "<group>"; };
@@ -259,6 +261,7 @@
 			children = (
 				3694BE04A7CBD8201C7867BC /* ExportConfig.swift */,
 				7968D386FA70039BF2855261 /* ExportEngine.swift */,
+				BC23DE4526EF2345678901BC /* GIFExporter.swift */,
 			);
 			path = Export;
 			sourceTree = "<group>";
@@ -363,6 +366,7 @@
 				56EA02E4257412565FF00041 /* ExportConfig.swift in Sources */,
 				7321456A65BBBFB45E585E42 /* ExportEngine.swift in Sources */,
 				5F784FB0149DB29DEA464595 /* ExportView.swift in Sources */,
+				AB12CD3425EF1234567890AB /* GIFExporter.swift in Sources */,
 				04788390E72D32D2CEDAB0C2 /* FloatingPanel.swift in Sources */,
 				87099825D85DB72EE4E6D37A /* FrameApp.swift in Sources */,
 				80121C8F96810172C9E583EB /* InspectorComponents.swift in Sources */,

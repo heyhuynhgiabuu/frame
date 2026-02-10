@@ -2,11 +2,12 @@ import Foundation
 import AVFoundation
 
 /// Configuration for video export.
-struct ExportConfig {
+struct ExportConfig: Codable, Equatable {
+    static let defaultConfig = ExportConfig()
 
     // MARK: - Format
 
-    enum ExportFormat: String, CaseIterable, Identifiable {
+    enum ExportFormat: String, Codable, CaseIterable, Identifiable {
         case mp4 = "MP4"
         case mov = "MOV"
         case gif = "GIF"
@@ -42,7 +43,7 @@ struct ExportConfig {
 
     // MARK: - Quality
 
-    enum ExportQuality: String, CaseIterable, Identifiable {
+    enum ExportQuality: String, Codable, CaseIterable, Identifiable {
         case low = "Low"
         case medium = "Medium"
         case high = "High"
@@ -85,7 +86,7 @@ struct ExportConfig {
 
     // MARK: - Resolution
 
-    enum ExportResolution: String, CaseIterable, Identifiable {
+    enum ExportResolution: String, Codable, CaseIterable, Identifiable {
         case original = "Original"
         case res4K = "4K"
         case res1080p = "1080p"
@@ -110,7 +111,7 @@ struct ExportConfig {
 
     // MARK: - Frame Rate
 
-    enum ExportFrameRate: Int, CaseIterable, Identifiable {
+    enum ExportFrameRate: Int, Codable, CaseIterable, Identifiable {
         case fps24 = 24
         case fps30 = 30
         case fps60 = 60

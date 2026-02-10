@@ -26,6 +26,9 @@ struct Project: Identifiable {
     /// Effects configuration
     var effects: EffectsConfig = .default
 
+    /// Export settings configuration
+    var exportConfig: ExportConfig = .defaultConfig
+
     init(name: String = "Untitled") {
         self.id = UUID()
         self.name = name
