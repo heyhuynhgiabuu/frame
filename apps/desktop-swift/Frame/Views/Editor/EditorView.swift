@@ -169,6 +169,8 @@ struct EditorView: View {
                 ZoomInspector(effects: effectsBinding)
             case .audio:
                 AudioInspector(effects: effectsBinding)
+            case .captions:
+                CaptionsInspector(effects: effectsBinding)
             }
         } else {
             VStack(spacing: 12) {

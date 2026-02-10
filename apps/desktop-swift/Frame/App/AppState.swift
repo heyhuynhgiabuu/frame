@@ -633,6 +633,7 @@ final class AppState {
         case camera = "Camera"
         case zoom = "Zoom"
         case audio = "Audio"
+        case captions = "Captions"
 
         var id: String { rawValue }
 
@@ -644,6 +645,7 @@ final class AppState {
             case .camera: return "camera.fill"
             case .zoom: return "plus.magnifyingglass"
             case .audio: return "speaker.wave.2.fill"
+            case .captions: return "captions.bubble.fill"
             }
         }
     }

@@ -117,6 +117,13 @@ struct PreviewCanvas: View {
                 currentTime: currentTime
             )
 
+            // Caption overlay
+            CaptionOverlayView(
+                captionSegments: effects.captionSegments,
+                effects: effects,
+                currentTime: currentTime
+            )
+
             // Loading / error overlay
             if let loadError {
                 VStack(spacing: 12) {
