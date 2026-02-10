@@ -1,0 +1,63 @@
+# Progress Log
+
+Bead: bd-3lk
+Started: 2026-02-10
+
+## Codebase Patterns
+
+**Background Inspector:** Located in `Frame/Views/Editor/Inspector/BackgroundInspector.swift`
+- Currently shows color swatches in a LazyVGrid
+- Uses `effects.backgroundType` and `effects.backgroundPreset` for selection
+- Has gradient preset grid using color swatches
+
+**Asset Catalog:** 
+- Uses `Assets.xcassets` for bundled images
+- Images accessed via `Image("assetName")` in SwiftUI
+
+**Background Types:**
+- `.gradient` - Gradient backgrounds with presets
+- `.solid` - Solid color backgrounds
+- `.wallpaper` - Image-based wallpapers
+- `.image` - Custom user images
+
+---
+
+## Task Execution Log
+
+### 2026-02-10: Start Work
+
+- Claimed bead bd-3lk
+- Created feature branch `feat/bd-3lk-wallpaper-thumbnails`
+- Wrote prd.md with 3 tasks
+- Converted PRD to prd.json
+- Ready to begin implementation
+
+### 2026-02-10: All Tasks Complete
+
+**Task 1: Create wallpaper thumbnail images** ✓
+- Created GenerateWallpaperThumbnails.swift script
+- Generated 9 thumbnail images (160x160px @2x):
+  - sunset, ocean, forest, lavender, midnight (gradients)
+  - dark, light, warm (solids)
+  - mesh (pattern)
+- Total size: ~60KB (well under 500KB limit)
+
+**Task 2: Add thumbnail assets to Xcode project** ✓
+- Created WallpaperThumbnails folder in Assets.xcassets
+- Added Contents.json with all 9 images
+- Images picked up automatically by asset catalog
+
+**Task 3: Replace color swatches with thumbnail grid** ✓
+- Added WallpaperPreset struct with 9 presets
+- Added wallpaperPresetID to EffectsConfig (Project.swift)
+- Updated BackgroundInspector to show Image grid for .wallpaper type
+- Selection shows purple accent border highlight
+- Images loaded from WallpaperThumbnails asset catalog
+
+**Build Status:** SUCCEEDED
+**Files Modified:**
+- Frame/Resources/Assets.xcassets/WallpaperThumbnails/* (9 images + Contents.json)
+- Frame/Resources/GenerateWallpaperThumbnails.swift (generator script)
+- Frame/Views/Editor/Inspector/BackgroundInspector.swift (WallpaperPreset struct + UI)
+- Frame/Models/Project.swift (wallpaperPresetID property)
+

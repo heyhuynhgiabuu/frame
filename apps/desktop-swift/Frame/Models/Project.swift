@@ -39,6 +39,7 @@ struct EffectsConfig: Codable {
     // Background
     var backgroundType: BackgroundType = .gradient
     var gradientPresetID: String? = "sunset"
+    var wallpaperPresetID: String? = "sunset"
     var backgroundColor: CodableColor = CodableColor(red: 0.1, green: 0.1, blue: 0.1)
     var backgroundImageURL: URL?
     var padding: Double = 32
