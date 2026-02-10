@@ -67,6 +67,8 @@ struct EffectsConfig: Codable {
     var webcamPosition: WebcamPosition = .bottomLeft
     var webcamSize: Double = 0.2            // 0.1 - 0.4 (relative to video)
     var webcamShape: WebcamShape = .circle
+    var webcamOffsetX: Double = 0           // Offset from corner position (-1 to 1)
+    var webcamOffsetY: Double = 0           // Offset from corner position (-1 to 1)
 
     // Audio
     var systemAudioEnabled: Bool = true

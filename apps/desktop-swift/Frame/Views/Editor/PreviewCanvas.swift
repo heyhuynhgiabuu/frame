@@ -14,6 +14,8 @@ struct PreviewCanvas: View {
     var webcamPlayer: AVPlayer?
     var zoomState: ZoomEngine.ZoomState = ZoomEngine.ZoomState()
     var keystrokeEvents: [KeystrokeEvent] = []
+    var isEditable: Bool = false  // Enable drag gestures for webcam, etc.
+    var onWebcamOffsetChanged: ((Double, Double) -> Void)? = nil  // Callback for position updates
 
     var body: some View {
         GeometryReader { geometry in
@@ -102,7 +104,9 @@ struct PreviewCanvas: View {
                     containerSize: CGSize(
                         width: videoSize.width + effects.padding * 2,
                         height: videoSize.height + effects.padding * 2
-                    )
+                    ),
+                    isEditable: isEditable,
+                    onOffsetChanged: onWebcamOffsetChanged
                 )
             }
 
@@ -211,7 +215,6 @@ import AVFoundation
     PreviewCanvas(
         player: AVPlayer(),
         effects: EffectsConfig(),
-        isReady: false
+        isReady: true
     )
-    .frame(width: 800, height: 600)
 }

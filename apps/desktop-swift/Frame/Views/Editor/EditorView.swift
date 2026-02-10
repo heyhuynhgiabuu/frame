@@ -70,7 +70,12 @@ struct EditorView: View {
                     webcamImage: appState.webcamImage,
                     webcamPlayer: appState.webcamPlayer,
                     zoomState: appState.zoomEngine.currentZoom,
-                    keystrokeEvents: appState.keystrokeEvents
+                    keystrokeEvents: appState.keystrokeEvents,
+                    isEditable: true,
+                    onWebcamOffsetChanged: { x, y in
+                        appState.currentProject?.effects.webcamOffsetX = x
+                        appState.currentProject?.effects.webcamOffsetY = y
+                    }
                 )
                 .onTapGesture {
                     appState.playbackEngine.togglePlayPause()

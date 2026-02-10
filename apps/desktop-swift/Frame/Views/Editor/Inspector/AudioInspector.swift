@@ -5,7 +5,7 @@ struct AudioInspector: View {
     @Binding var effects: EffectsConfig
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Section: Audio Sources
             inspectorSection("Sources") {
                 Toggle("System audio", isOn: $effects.systemAudioEnabled)
@@ -23,8 +23,10 @@ struct AudioInspector: View {
                     label: "Master",
                     value: $effects.volume,
                     range: 0...1,
-                    format: "%.0f%%",
-                    multiplier: 100
+                    defaultValue: EffectsConfig.default.volume,
+                    format: "%.0f",
+                    multiplier: 100,
+                    unit: "%"
                 )
             }
         }

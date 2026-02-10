@@ -5,7 +5,7 @@ struct KeyboardInspector: View {
     @Binding var effects: EffectsConfig
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Section: Enable
             inspectorSection("Keystrokes") {
                 Toggle("Show keystroke overlay", isOn: $effects.keystrokesEnabled)
@@ -25,14 +25,18 @@ struct KeyboardInspector: View {
                         label: "Font size",
                         value: $effects.keystrokeFontSize,
                         range: 10...28,
-                        format: "%.0fpt"
+                        defaultValue: EffectsConfig.default.keystrokeFontSize,
+                        format: "%.0f",
+                        unit: "pt"
                     )
 
                     SliderRow(
                         label: "Display duration",
                         value: $effects.keystrokeDisplayDuration,
                         range: 0.5...5.0,
-                        format: "%.1fs"
+                        defaultValue: EffectsConfig.default.keystrokeDisplayDuration,
+                        format: "%.1f",
+                        unit: "s"
                     )
                 }
 

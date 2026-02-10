@@ -5,7 +5,7 @@ struct BackgroundInspector: View {
     @Binding var effects: EffectsConfig
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Section: Background Type
             inspectorSection("Type") {
                 Picker("Background", selection: $effects.backgroundType) {
@@ -71,7 +71,9 @@ struct BackgroundInspector: View {
                     label: "Size",
                     value: $effects.padding,
                     range: 0...128,
-                    format: "%.0f px"
+                    defaultValue: EffectsConfig.default.padding,
+                    format: "%.0f",
+                    unit: "px"
                 )
             }
 
@@ -81,7 +83,9 @@ struct BackgroundInspector: View {
                     label: "Radius",
                     value: $effects.cornerRadius,
                     range: 0...48,
-                    format: "%.0f px"
+                    defaultValue: EffectsConfig.default.cornerRadius,
+                    format: "%.0f",
+                    unit: "px"
                 )
             }
 
@@ -93,19 +97,23 @@ struct BackgroundInspector: View {
                     label: "Blur",
                     value: $effects.shadowBlur,
                     range: 0...100,
+                    defaultValue: EffectsConfig.default.shadowBlur,
                     format: "%.0f"
                 )
                 SliderRow(
                     label: "Opacity",
                     value: $effects.shadowOpacity,
                     range: 0...1,
-                    format: "%.0f%%",
-                    multiplier: 100
+                    defaultValue: EffectsConfig.default.shadowOpacity,
+                    format: "%.0f",
+                    multiplier: 100,
+                    unit: "%"
                 )
                 SliderRow(
                     label: "Offset Y",
                     value: $effects.shadowOffsetY,
                     range: 0...40,
+                    defaultValue: EffectsConfig.default.shadowOffsetY,
                     format: "%.0f"
                 )
             }
