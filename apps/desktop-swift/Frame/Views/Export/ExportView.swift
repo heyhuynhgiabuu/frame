@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 /// Export sheet — format picker, quality settings, progress bar, export/cancel.
 struct ExportView: View {
@@ -39,6 +40,16 @@ struct ExportView: View {
         }
         .frame(width: 420, height: appState.exportEngine.isExporting ? 280 : 520)
         .background(.ultraThickMaterial)
+        .onAppear {
+            // Load persisted settings from project
+            if let project = appState.currentProject {
+                config = project.exportConfig
+            }
+        }
+        .onChange(of: config) { _, newConfig in
+            // Persist settings back to project
+            appState.currentProject?.exportConfig = newConfig
+        }
     }
 
     // MARK: - Header
@@ -165,13 +176,27 @@ struct ExportView: View {
                 .font(.subheadline.weight(.medium))
 
             Picker("Frame Rate", selection: $config.frameRate) {
-                ForEach(ExportConfig.ExportFrameRate.allCases) { fps in
+                ForEach(availableFrameRates) { fps in
                     Text(fps.displayName).tag(fps)
                 }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .onChange(of: config.format) { _, newFormat in
+                // Auto-switch to 30fps when selecting GIF format
+                if newFormat == .gif && config.frameRate == .fps60 {
+                    config.frameRate = .fps30
+                }
+            }
         }
+    }
+
+    private var availableFrameRates: [ExportConfig.ExportFrameRate] {
+        if config.format == .gif {
+            // GIF only supports up to 30fps
+            return ExportConfig.ExportFrameRate.allCases.filter { $0 != .fps60 }
+        }
+        return ExportConfig.ExportFrameRate.allCases
     }
 
     // MARK: - GIF Section
@@ -283,6 +308,7 @@ struct ExportView: View {
                 if appState.exportEngine.currentPhase == .complete {
                     Button("Done") {
                         appState.exportEngine.cancel()    // Reset state
+                        showCompletionNotification()
                         dismiss()
                     }
                     .keyboardShortcut(.defaultAction)
@@ -299,7 +325,12 @@ struct ExportView: View {
                 // Estimated file size hint
                 estimatedSize
 
-                Button("Export") {
+                Button("Copy to Clipboard") {
+                    exportToClipboard()
+                }
+                .disabled(appState.currentProject == nil)
+
+                Button("Export to File") {
                     startExport()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -345,6 +376,74 @@ struct ExportView: View {
                 outputURL: url
             )
         }
+    }
+
+    private func exportToClipboard() {
+        guard let project = appState.currentProject else { return }
+
+        // Create a temporary file for clipboard export
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempURL = tempDir.appendingPathComponent(config.defaultFilename(projectName: project.name))
+
+        // Remove any existing temp file
+        try? FileManager.default.removeItem(at: tempURL)
+
+        appState.exportEngine.export(
+            project: project,
+            config: config,
+            outputURL: tempURL
+        )
+
+        // Monitor for completion and copy to clipboard
+        Task {
+            while appState.exportEngine.isExporting {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            }
+
+            if appState.exportEngine.currentPhase == .complete {
+                await MainActor.run {
+                    copyFileToClipboard(tempURL)
+                }
+            }
+        }
+    }
+
+    private func copyFileToClipboard(_ url: URL) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        
+        // Write the file URL to the pasteboard for file copy operations
+        pasteboard.declareTypes([.fileURL], owner: nil)
+        pasteboard.setString(url.absoluteString, forType: .fileURL)
+
+        // Show success notification
+        let notification = UNMutableNotificationContent()
+        notification.title = "Export Complete"
+        notification.body = "\(config.format.rawValue) copied to clipboard"
+        notification.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "export-complete-\(url.lastPathComponent)",
+            content: notification,
+            trigger: nil
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func showCompletionNotification() {
+        let notification = UNMutableNotificationContent()
+        notification.title = "Export Complete"
+        notification.body = "Your \(config.format.rawValue) has been exported successfully"
+        notification.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "export-complete-\(UUID().uuidString)",
+            content: notification,
+            trigger: nil
+        )
+
+        UNUserNotificationCenter.current().add(request)
     }
 }
 

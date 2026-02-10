@@ -1,0 +1,61 @@
+# Progress Log
+
+Bead: bd-3t5
+Started: 2026-02-11
+
+## Codebase Patterns
+
+<!-- Consolidate reusable patterns here -->
+
+---
+
+<!-- Task logs below - APPEND ONLY -->
+
+## 2026-02-11 - Started
+
+- Claimed bead bd-3t5
+- Created feature branch: feat/bd-3t5-export-settings
+- Converted PRD to prd.json with 5 tasks
+- Tasks identified:
+  1. Create export settings model [backend] - parallel ready
+  2. Build export settings UI [ui] - depends on #1
+  3. Add GIF export capability [backend] - parallel ready
+  4. Update ExportEngine [backend] - depends on #1, #3
+  5. Add progress and completion UX [ui] - depends on #4
+
+## 2026-02-11 - All Tasks Completed
+
+### backend-1: ExportConfig Codable ✅
+- Added `Codable, Equatable` to ExportConfig and all nested enums
+- Added `static let defaultConfig` for default values
+- Added `exportConfig` property to Project model for persistence
+
+### backend-2: GIFExporter ✅  
+- Created `GIFExporter.swift` (350+ lines)
+- Uses ImageIO CGImageDestination for GIF encoding
+- Supports customizable frame rate, quality, loop count
+- Applies effects (background, corner radius, shadow) to each frame
+- Reports progress via callback
+- Added to Xcode project (pbxproj)
+
+### backend-3: ExportEngine GIF Support ✅
+- Renamed `performExport` → `performVideoExport`
+- Added `performGIFExport` that delegates to GIFExporter
+- Added cancel support for GIF exports
+- Progress reporting wired through
+
+### ui-1: Export Settings UI ✅
+- Added 60fps auto-disable when GIF format selected
+- Auto-switches from 60fps → 30fps when GIF chosen
+- Shows filtered frame rate options
+
+### ui-2: Progress & Completion UX ✅
+- Renamed "Export" → "Export to File" button
+- Added "Copy to Clipboard" button (hidden for GIF format)
+- Added `showCompletionNotification()` with UNUserNotifications
+- Added `copyFileToClipboard()` using NSPasteboard
+- Clipboard export: temp file → export → copy to pasteboard
+- Completion notification fires on Done button press
+
+### Build Verification
+- `xcodebuild build` → BUILD SUCCEEDED ✅

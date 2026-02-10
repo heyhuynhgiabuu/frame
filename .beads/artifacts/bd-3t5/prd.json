@@ -1,0 +1,125 @@
+{
+  "beadId": "bd-3t5",
+  "prdName": "full-export-settings-panel",
+  "tasks": [
+    {
+      "id": "backend-1",
+      "category": "backend",
+      "description": "Create export settings model with all export options",
+      "steps": [
+        "ExportConfig struct created with format, fps, size, quality properties",
+        "Encoding/decoding works for persistence",
+        "Project model updated to store ExportConfig"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["Frame/Export/ExportConfig.swift", "Frame/Models/Project.swift"]
+      }
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Build export settings UI with format selector, frame rate, size, quality controls",
+      "steps": [
+        "Open Export panel, see all controls",
+        "Format selector works (MP4/GIF)",
+        "Frame rate selector works (30/60fps, 60 disabled for GIF)",
+        "Size selector works (720p/1080p/4K/Original)",
+        "Quality selector works (Low/Medium/High)",
+        "Settings update correctly and persist"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": ["backend-1"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Views/Export/ExportPanel.swift"]
+      }
+    },
+    {
+      "id": "backend-2",
+      "category": "backend",
+      "description": "Add GIF export capability for GIF format exports",
+      "steps": [
+        "GIFExporter.swift created with GIF generation logic",
+        "Export GIF, file created successfully",
+        "Animation plays correctly",
+        "File size reasonable for web use"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["Frame/Export/GIFExporter.swift"]
+      }
+    },
+    {
+      "id": "backend-3",
+      "category": "backend",
+      "description": "Update ExportEngine to use ExportConfig settings",
+      "steps": [
+        "ExportEngine uses selected format (MP4/GIF)",
+        "ExportEngine respects frame rate, size, quality settings",
+        "Different formats work correctly",
+        "Quality settings affect output file size"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": ["backend-1", "backend-2"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Export/ExportEngine.swift"]
+      }
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Add progress and completion UX with progress indicator and notifications",
+      "steps": [
+        "Progress bar shows during export",
+        "Progress percentage updates in real-time",
+        "Success notification shown on completion",
+        "Error message shown on export failure",
+        "Export to File button opens save panel",
+        "Copy to Clipboard button works"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": ["backend-3"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Views/Export/ExportPanel.swift"]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "ExportConfig pattern for settings persistence",
+      "EffectsConfig pattern for user preferences",
+      "SwiftUI forms with segmented controls"
+    ],
+    "keyFiles": [
+      "Frame/Views/Export/ExportPanel.swift",
+      "Frame/Export/ExportEngine.swift",
+      "Frame/Models/Project.swift"
+    ],
+    "nonGoals": [
+      "Custom frame rates (only 30/60)",
+      "Custom resolution inputs",
+      "Watermark options",
+      "Batch export",
+      "Cloud upload integration"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": [],
+    "parallel": true,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 3
+  }
+}
