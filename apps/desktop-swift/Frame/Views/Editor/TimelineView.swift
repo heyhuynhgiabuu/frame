@@ -266,6 +266,17 @@ struct TimelineView: View {
                     )
                     .offset(x: width * trimInProgress)
 
+                // Audio waveform
+                if let waveform = engine.audioWaveform {
+                    AudioWaveformView(
+                        waveform: waveform,
+                        duration: duration,
+                        volume: effects.volume,
+                        width: width,
+                        height: height
+                    )
+                }
+
                 // Progress fill
                 RoundedRectangle(cornerRadius: 4)
                     .fill(.blue.opacity(0.15))
@@ -369,6 +380,78 @@ struct TimelineView: View {
         let seconds = Int(time) % 60
         let centiseconds = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
         return String(format: "%02d:%02d.%02d", minutes, seconds, centiseconds)
+    }
+}
+
+// MARK: - Audio Waveform View
+
+private struct AudioWaveformView: View {
+    let waveform: AudioWaveform
+    let duration: TimeInterval
+    let volume: Double
+    let width: CGFloat
+    let height: CGFloat
+    
+    /// Number of bars to display across the timeline width
+    private var barCount: Int {
+        max(50, min(200, Int(width / 4)))
+    }
+    
+    private var barWidth: CGFloat {
+        width / CGFloat(barCount)
+    }
+    
+    private var barSpacing: CGFloat {
+        barWidth * 0.2
+    }
+    
+    private var effectiveBarWidth: CGFloat {
+        barWidth - barSpacing
+    }
+    
+    var body: some View {
+        HStack(spacing: barSpacing) {
+            ForEach(0..<barCount, id: \.self) { index in
+                let amplitude = amplitudeForBar(at: index)
+                
+                Rectangle()
+                    .fill(amplitudeGradient)
+                    .frame(width: effectiveBarWidth, height: height * amplitude)
+                    .clipShape(RoundedRectangle(cornerRadius: 1))
+            }
+        }
+        .frame(width: width, height: height)
+        .opacity(volume > 0 ? 0.7 : 0.35)
+    }
+    
+    /// Get the amplitude for a specific bar index
+    private func amplitudeForBar(at index: Int) -> CGFloat {
+        guard !waveform.samples.isEmpty, duration > 0 else { return 0.05 }
+        
+        let startTime = (Double(index) / Double(barCount)) * duration
+        let endTime = (Double(index + 1) / Double(barCount)) * duration
+        
+        let samples = waveform.samples(in: startTime...endTime)
+        guard !samples.isEmpty else { return 0.05 }
+        
+        // Use average amplitude, with minimum height for visual feedback
+        let avgAmplitude = samples.reduce(0, +) / Float(samples.count)
+        let minAmplitude: Float = 0.08
+        let effectiveVolume = Float(volume)
+        
+        return CGFloat(max(minAmplitude, avgAmplitude * effectiveVolume))
+    }
+    
+    /// Orange-to-blue gradient for the waveform bars
+    private var amplitudeGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 1.0, green: 0.42, blue: 0.21), // Orange
+                Color(red: 0.31, green: 0.8, blue: 0.77)   // Blue/Cyan
+            ],
+            startPoint: .bottom,
+            endPoint: .top
+        )
     }
 }
 

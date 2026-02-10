@@ -4,6 +4,9 @@ import OSLog
 
 private let logger = Logger(subsystem: "com.frame.app", category: "PlaybackEngine")
 
+// MARK: - AudioWaveform (forward declaration)
+// Defined in AudioWaveformGenerator.swift
+
 /// Manages AVPlayer state for video playback in the editor.
 @MainActor
 final class PlaybackEngine: ObservableObject {
@@ -21,6 +24,12 @@ final class PlaybackEngine: ObservableObject {
         guard duration > 0 else { return 0 }
         return currentTime / duration
     }
+
+    // MARK: - Audio Waveform
+
+    @Published private(set) var audioWaveform: AudioWaveform?
+    private let waveformGenerator = AudioWaveformGenerator()
+    private var waveformTask: Task<Void, Never>?
 
     // MARK: - Player
 
@@ -54,6 +63,9 @@ final class PlaybackEngine: ObservableObject {
         duration = 0
         isReady = false
         loadError = nil
+        audioWaveform = nil
+        waveformTask?.cancel()
+        waveformTask = nil
 
         // Verify file exists and has content
         guard FileManager.default.fileExists(atPath: url.path) else {
@@ -78,6 +90,23 @@ final class PlaybackEngine: ObservableObject {
                     self.loadError = nil
                     self.duration = item.duration.seconds.isFinite ? item.duration.seconds : 0
                     logger.info("Video ready — duration: \(self.duration)s")
+                    
+                    // Generate audio waveform
+                    self.waveformTask?.cancel()
+                    self.waveformTask = Task { @MainActor in
+                        do {
+                            if let waveform = try await self.waveformGenerator.generateWaveform(from: url) {
+                                self.audioWaveform = waveform
+                                logger.info("Audio waveform generated with \(waveform.samples.count) samples")
+                            } else {
+                                self.audioWaveform = nil
+                                logger.info("No audio waveform available (video has no audio)")
+                            }
+                        } catch {
+                            logger.error("Failed to generate waveform: \(error.localizedDescription)")
+                            self.audioWaveform = nil
+                        }
+                    }
                 case .failed:
                     let errorMsg = item.error?.localizedDescription ?? "unknown error"
                     logger.error("Player item failed: \(errorMsg)")

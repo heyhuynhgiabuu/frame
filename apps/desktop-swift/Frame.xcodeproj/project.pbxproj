@@ -48,6 +48,7 @@
 		EEF7471AB21FA78798F1DA56 /* MicLevelMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED924C4DAEE4616BC5497EEF /* MicLevelMonitor.swift */; };
 		FAA8AA768601B4FD5CEBB0E3 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D2D678A52372391A8B3FC3 /* RecordingView.swift */; };
 		FB69D85D85F079C4DC834EE8 /* PreviewCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07E4178CF090EDE56BD68CE /* PreviewCanvas.swift */; };
+		7607EB1C2CD9434C91AADCEE /* AudioWaveformGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFCA121E581340D59555B182 /* AudioWaveformGenerator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,6 +96,7 @@
 		FAFBE2000E3071349117B60D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FBFD2E6B72EFF28F0FD15770 /* FrameApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameApp.swift; sourceTree = "<group>"; };
 		FC9BA31FF13B3B87BC2B2A53 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
+		AFCA121E581340D59555B182 /* AudioWaveformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioWaveformGenerator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -186,6 +188,7 @@
 			isa = PBXGroup;
 			children = (
 				F75D71B885375C89AD068111 /* PlaybackEngine.swift */,
+				AFCA121E581340D59555B182 /* AudioWaveformGenerator.swift */,
 				FC9BA31FF13B3B87BC2B2A53 /* VideoPlayerView.swift */,
 			);
 			path = Playback;
@@ -369,6 +372,7 @@
 				51CEEED7A8F8B80B1E467D1F /* OverlayManager.swift in Sources */,
 				6666A8761D6A7225EF31AF6F /* Permissions.swift in Sources */,
 				E07362BF274B4D5347EE0ED7 /* PlaybackEngine.swift in Sources */,
+				7607EB1C2CD9434C91AADCEE /* AudioWaveformGenerator.swift in Sources */,
 				FB69D85D85F079C4DC834EE8 /* PreviewCanvas.swift in Sources */,
 				37A7AD9C35B139A399E5C893 /* Project.swift in Sources */,
 				12702BA61EC7CC54814A4523 /* RecordingConfig.swift in Sources */,
