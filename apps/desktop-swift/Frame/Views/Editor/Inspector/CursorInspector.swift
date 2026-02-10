@@ -5,7 +5,7 @@ struct CursorInspector: View {
     @Binding var effects: EffectsConfig
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Section: Enable
             inspectorSection("Cursor") {
                 Toggle("Show cursor overlay", isOn: $effects.cursorEnabled)
@@ -21,8 +21,10 @@ struct CursorInspector: View {
                         label: "Amount",
                         value: $effects.cursorSmoothing,
                         range: 0...1,
-                        format: "%.0f%%",
-                        multiplier: 100
+                        defaultValue: EffectsConfig.default.cursorSmoothing,
+                        format: "%.0f",
+                        multiplier: 100,
+                        unit: "%"
                     )
 
                     Text("Smooths cursor movement to reduce jitter")
@@ -38,7 +40,9 @@ struct CursorInspector: View {
                         label: "Scale",
                         value: $effects.cursorScale,
                         range: 0.5...3.0,
-                        format: "%.1fx"
+                        defaultValue: EffectsConfig.default.cursorScale,
+                        format: "%.1f",
+                        unit: "x"
                     )
 
                     Toggle("Highlight circle", isOn: $effects.cursorHighlight)
@@ -57,7 +61,9 @@ struct CursorInspector: View {
                             label: "Delay",
                             value: $effects.cursorAutoHideDelay,
                             range: 0.5...5.0,
-                            format: "%.1fs"
+                            defaultValue: EffectsConfig.default.cursorAutoHideDelay,
+                            format: "%.1f",
+                            unit: "s"
                         )
                     }
                 }

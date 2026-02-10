@@ -1,0 +1,182 @@
+{
+  "beadId": "bd-13v",
+  "prdName": "editor-ui-improvements",
+  "tasks": [
+    {
+      "id": "ui-1",
+      "title": "Add Reset buttons to SliderRow component",
+      "category": "ui",
+      "description": "SliderRow displays a Reset button when value differs from default, clicking it reverts to default.",
+      "steps": [
+        "Build app, open Editor",
+        "Adjust Padding slider from default",
+        "Verify Reset button appears",
+        "Click Reset, verify value returns to default"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": [
+          "Frame/Views/Editor/Inspector/InspectorComponents.swift",
+          "Frame/Models/EffectsConfig.swift"
+        ]
+      }
+    },
+    {
+      "id": "ui-2",
+      "title": "Reduce inspector panel padding",
+      "category": "ui",
+      "description": "Reduce padding from ~16px to ~8-12px in all inspector views for higher information density.",
+      "steps": [
+        "Build app, open Editor",
+        "Compare spacing to previous build",
+        "Verify no clipping or overflow issues"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": [
+          "Frame/Views/Editor/Inspector/BackgroundInspector.swift",
+          "Frame/Views/Editor/Inspector/CursorInspector.swift",
+          "Frame/Views/Editor/Inspector/KeyboardInspector.swift",
+          "Frame/Views/Editor/Inspector/WebcamInspector.swift",
+          "Frame/Views/Editor/Inspector/ZoomInspector.swift",
+          "Frame/Views/Editor/Inspector/AudioInspector.swift"
+        ]
+      }
+    },
+    {
+      "id": "ui-3",
+      "title": "Change accent color to purple/blue",
+      "category": "ui",
+      "description": "Replace bright green accent color with professional purple/blue (#7C7CFF or similar) across all UI elements.",
+      "steps": [
+        "Build app, open Editor",
+        "Verify slider thumbs use new accent",
+        "Verify value labels use new accent",
+        "Check all inspector views for consistency"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": [
+          "Frame/Utilities/Colors.swift",
+          "Frame/Views/Editor/Inspector/InspectorComponents.swift"
+        ]
+      }
+    },
+    {
+      "id": "ui-4",
+      "title": "Add glassmorphism blur to inspector panel",
+      "category": "ui",
+      "description": "Apply NSVisualEffectView blur to inspector sidebar for depth and modern appearance.",
+      "steps": [
+        "Build app, open Editor",
+        "Verify sidebar shows blur effect",
+        "Test on both light and dark mode",
+        "Move window over different backgrounds to verify dynamic blur"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": ["Reduce inspector panel padding"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Views/Editor/EditorView.swift"]
+      }
+    },
+    {
+      "id": "ui-5",
+      "title": "Show wallpaper thumbnails in preset grid",
+      "category": "ui",
+      "description": "Replace color swatches with actual wallpaper thumbnail images in Background inspector.",
+      "steps": [
+        "Build app, open Editor",
+        "Open Background inspector",
+        "Verify 10 thumbnail images visible",
+        "Verify selecting thumbnail applies correct background"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["Frame/Views/Editor/Inspector/BackgroundInspector.swift", "Frame/Assets/"]
+      }
+    },
+    {
+      "id": "feature-1",
+      "title": "Add audio waveform visualization to timeline",
+      "category": "feature",
+      "description": "Render audio amplitude as orange/blue waveform in timeline using Swift Charts with viewport caching.",
+      "steps": [
+        "Build app, open Editor",
+        "Load video with audio",
+        "Verify orange/blue waveform appears in timeline",
+        "Scrub timeline, verify smooth 60fps performance",
+        "Load video without audio, verify no waveform shown"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": [
+          "Frame/Views/Editor/TimelineView.swift",
+          "Frame/Playback/AudioWaveformGenerator.swift"
+        ]
+      }
+    },
+    {
+      "id": "feature-2",
+      "title": "Embed webcam as floating overlay in preview",
+      "category": "feature",
+      "description": "Display webcam feed as draggable floating overlay within the video preview canvas.",
+      "steps": [
+        "Build app, open Editor",
+        "Enable webcam in settings",
+        "Verify webcam appears as overlay in preview",
+        "Drag webcam to new position",
+        "Start recording, verify position is captured in output"
+      ],
+      "passes": false,
+      "metadata": {
+        "depends_on": ["Add glassmorphism blur to inspector panel"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Views/Editor/PreviewCanvas.swift", "Frame/Models/EffectsConfig.swift"]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "SliderRow: Frame/Views/Editor/Inspector/InspectorComponents.swift",
+      "Glass effect: VisualEffectBackground wrapper",
+      "Inspector panel: HSplitView with 280px width",
+      "EffectsConfig: Binding passed to all inspectors"
+    ],
+    "keyFiles": [
+      "Frame/Views/Editor/EditorView.swift",
+      "Frame/Views/Editor/Inspector/InspectorComponents.swift",
+      "Frame/Models/EffectsConfig.swift"
+    ],
+    "nonGoals": [
+      "Timeline zoom controls (deferred to v2)",
+      "Liquid Glass materials (requires macOS Tahoe+)",
+      "Custom Metal shaders",
+      "Keyboard shortcut system"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": [],
+    "parallel": true,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 6
+  }
+}

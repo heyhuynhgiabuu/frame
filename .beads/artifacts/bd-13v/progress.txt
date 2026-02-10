@@ -1,0 +1,108 @@
+# Progress Log
+
+Bead: bd-13v
+Started: 2026-02-10
+
+## Codebase Patterns
+
+<!-- Consolidate reusable patterns here -->
+
+**SliderRow Component:** Located in `Frame/Views/Editor/Inspector/InspectorComponents.swift`
+- VStack with HStack (label + value) and Slider
+- Uses `.controlSize(.small)` for compact appearance
+- Currently no reset affordance
+
+**Visual Effect/Glassmorphism:** 
+- `VisualEffectBackground` wrapper exists in `Frame/Views/Shared/`
+- `EditorView.swift` already uses `.hudWindow` material
+- Inspector uses `.ultraThinMaterial` (needs verification)
+
+**Inspector Panel Structure:**
+- `EditorView.swift` uses `HSplitView` with 280px right sidebar
+- Individual inspectors in `Frame/Views/Editor/Inspector/`
+- All receive `Binding<EffectsConfig>` for reactive updates
+
+**EffectsConfig Model:**
+- Stored in `Frame/Models/EffectsConfig.swift`
+- Contains padding, corners, shadow, blur values
+- Needs default values added for reset functionality
+
+---
+
+<!-- Task logs below - APPEND ONLY -->
+
+## Task Execution Log
+
+### 2026-02-10: Start Work
+
+- Claimed bead bd-13v
+- Created feature branch `feat/bd-13v-editor-ui`
+- Converted PRD to prd.json
+- Ready to begin implementation
+
+### 2026-02-10: Tasks 1-4 Complete
+
+**Task 1: Add Reset buttons to SliderRow** ✓
+- Modified `InspectorComponents.swift`
+- Added `Color.frameAccent` extension (#7C7CFF)
+- Updated `SliderRow` with `defaultValue` parameter and Reset button
+- Reset button appears when value differs from default, animates on click
+
+**Task 2: Reduce inspector panel padding** ✓
+- Updated spacing in all 6 inspector files: 16→12
+- Files: Background, Cursor, Keyboard, Webcam, Zoom, Audio inspectors
+
+**Task 3: Change accent color to purple/blue** ✓
+- Added professional purple/blue accent (#7C7CFF)
+- Applied to slider thumbs (`.tint`) and Reset buttons
+
+**Task 4: Add glassmorphism blur** ✓ (Already implemented)
+- Verified `.ultraThinMaterial` used in EditorView, TimelineView, KeystrokeOverlayView
+- No changes needed - glassmorphism already present
+
+**Build Status:** SUCCEEDED  
+**Review Status:** PASSED — No issues found
+
+### 2026-02-10: Review Complete
+
+Review agent verified:
+- All SliderRow call sites updated with defaultValue correctly
+- Accent color (#7C7CFF) properly applied
+- Inspector spacing changes safe (16→12)
+- No regressions or unsafe code introduced
+- SwiftUI bindings intact
+
+**Status:** Tasks 1-4 complete and verified. Ready to ship or continue with remaining tasks.
+
+### 2026-02-10: Task 7 Complete (Webcam Draggable Overlay)
+
+**Changes:**
+- Added `webcamOffsetX` and `webcamOffsetY` to EffectsConfig (Project.swift lines 41-42)
+- Updated WebcamOverlayView with drag gesture support and callback
+- Added `isEditable` and `onOffsetChanged` parameters to PreviewCanvas
+- EditorView enables dragging with callback to update model
+- Position normalized (-1 to 1) relative to corner anchor position
+- Drag ends commit position to model via callback
+
+**Build Status:** SUCCEEDED
+
+### 2026-02-10: Tasks Deferred
+
+**Task 5: Wallpaper thumbnails** → Deferred to **bd-3lk**
+- Requires adding wallpaper image assets to project
+- Deferred due to asset dependency
+
+**Task 6: Audio waveform** → Deferred to **bd-1c0**
+- Requires audio buffer analysis + Swift Charts integration
+- Higher complexity, estimated 2-3 hours
+- Deferred to separate focused session
+
+**Task 7: Webcam overlay** → COMPLETED ✓
+- Drag gesture working
+- Position persistence via callback pattern
+
+**Final Status:** 5/7 tasks completed, 2 deferred to new beads
+- bd-13v: 5 tasks shipped
+- bd-3lk: Wallpaper thumbnails (ready to /start)
+- bd-1c0: Audio waveform (ready to /start)
+

@@ -5,7 +5,7 @@ struct WebcamInspector: View {
     @Binding var effects: EffectsConfig
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Section: Enable
             inspectorSection("Webcam Overlay") {
                 Toggle("Show webcam", isOn: $effects.webcamEnabled)
@@ -35,8 +35,10 @@ struct WebcamInspector: View {
                         label: "Scale",
                         value: $effects.webcamSize,
                         range: 0.1...0.4,
-                        format: "%.0f%%",
-                        multiplier: 100
+                        defaultValue: EffectsConfig.default.webcamSize,
+                        format: "%.0f",
+                        multiplier: 100,
+                        unit: "%"
                     )
                 }
 

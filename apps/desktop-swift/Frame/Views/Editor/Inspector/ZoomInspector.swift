@@ -5,7 +5,7 @@ struct ZoomInspector: View {
     @Binding var effects: EffectsConfig
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Section: Auto Zoom
             inspectorSection("Auto Zoom") {
                 Toggle("Enable auto-zoom on clicks", isOn: $effects.autoZoomEnabled)
@@ -25,7 +25,9 @@ struct ZoomInspector: View {
                         label: "Zoom level",
                         value: $effects.zoomScale,
                         range: 1.2...4.0,
-                        format: "%.1fx"
+                        defaultValue: EffectsConfig.default.zoomScale,
+                        format: "%.1f",
+                        unit: "x"
                     )
                 }
 
