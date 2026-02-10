@@ -41,6 +41,13 @@ final class ZoomEngine: ObservableObject {
         effects: EffectsConfig,
         videoSize: CGSize
     ) {
+        // First check for manual zoom segments
+        if let manualZoom = findActiveZoomSegment(at: time, in: effects.zoomSegments) {
+            applyZoomSegment(manualZoom, at: time, videoSize: videoSize, effects: effects)
+            return
+        }
+        
+        // Fall back to auto-zoom from cursor clicks
         guard effects.autoZoomEnabled else {
             currentZoom = ZoomState()
             return
@@ -104,6 +111,58 @@ final class ZoomEngine: ObservableObject {
         let offsetX = -(nx - 0.5) * videoSize.width * (scale - 1)
         let offsetY = -(ny - 0.5) * videoSize.height * (scale - 1)
 
+        currentZoom = ZoomState(
+            scale: scale,
+            offsetX: offsetX,
+            offsetY: offsetY,
+            isZoomed: animProgress > 0.01
+        )
+    }
+    
+    /// Find an active zoom segment at the given time
+    private func findActiveZoomSegment(at time: TimeInterval, in segments: [ZoomSegment]) -> ZoomSegment? {
+        return segments.first { segment in
+            segment.isEnabled && segment.isActive(at: time)
+        }
+    }
+    
+    /// Apply a zoom segment at the given time
+    private func applyZoomSegment(
+        _ segment: ZoomSegment,
+        at time: TimeInterval,
+        videoSize: CGSize,
+        effects: EffectsConfig
+    ) {
+        let speed = effects.zoomAnimationStyle.speedMultiplier
+        let targetScale = CGFloat(segment.scale)
+        let timeInSegment = time - segment.startTime
+        let segmentDuration = segment.duration
+        
+        // Compute animation phases (proportional to segment duration)
+        let zoomIn = (zoomInDuration / speed)
+        let zoomOut = (zoomOutDuration / speed)
+        let hold = max(0, segmentDuration - zoomIn - zoomOut)
+        
+        let animProgress: CGFloat
+        if timeInSegment < zoomIn {
+            // Zooming in
+            animProgress = easeInOut(CGFloat(timeInSegment / zoomIn))
+        } else if timeInSegment < zoomIn + hold {
+            // Holding
+            animProgress = 1.0
+        } else {
+            // Zooming out
+            let outProgress = (timeInSegment - zoomIn - hold) / zoomOut
+            animProgress = 1.0 - easeInOut(CGFloat(min(1, outProgress)))
+        }
+        
+        let scale = 1.0 + (targetScale - 1.0) * animProgress
+        
+        // For manual segments, center on the video center (or could use stored position)
+        // Offset so the center point stays centered during zoom
+        let offsetX: CGFloat = 0  // Centered
+        let offsetY: CGFloat = 0  // Centered
+        
         currentZoom = ZoomState(
             scale: scale,
             offsetX: offsetX,
