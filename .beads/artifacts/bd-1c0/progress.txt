@@ -1,0 +1,67 @@
+# Progress Log
+
+Bead: bd-1c0
+Started: 2026-02-10
+
+## Codebase Patterns
+
+**Timeline View:** Located in `Frame/Views/Editor/TimelineView.swift`
+- Shows video track with trim handles, playhead, transport controls
+- Uses GeometryReader for responsive layout
+- Currently no audio visualization
+
+**Playback Engine:** Located in `Frame/Playback/PlaybackEngine.swift`
+- Manages AVPlayer instance
+- Handles video loading and playback
+- Provides currentTime, duration, isReady state
+
+**Audio Handling:**
+- Currently only uses AVPlayer for audio playback
+- No audio extraction or analysis
+- Audio volume controlled via effects.volume
+
+**Swift Charts:**
+- Available on macOS 13.0+
+- Can be used for waveform visualization
+- Supports gradients, bar charts, line charts
+
+---
+
+## Task Execution Log
+
+### 2026-02-10: Start Work
+
+- Claimed bead bd-1c0
+- Created feature branch `feat/bd-1c0-audio-waveform`
+- Wrote prd.md with 3 tasks
+- Converted PRD to prd.json
+- Ready to begin implementation
+
+### 2026-02-10: All Tasks Complete
+
+**Task 1: Create AudioWaveformGenerator** ✓
+- Created AudioWaveformGenerator.swift with AVAssetReader-based audio extraction
+- AudioWaveform struct with samples array and helper methods
+- RMS amplitude calculation with normalization to 0-1 range
+- 10 samples per second resolution (~2s for 1-min video)
+- Async/await with progress tracking
+
+**Task 2: Add waveform data to PlaybackEngine** ✓
+- Added audioWaveform: AudioWaveform? published property
+- Added waveformGenerator instance
+- Trigger generation when video status becomes .readyToPlay
+- Clear waveform when video is closed
+
+**Task 3: Create waveform view in TimelineView** ✓
+- Added AudioWaveformView with orange-to-blue gradient bars
+- Responsive bar count (50-200 bars based on width)
+- Volume affects opacity (100% = 0.7 opacity, muted = 0.35)
+- Placed between active region and progress fill
+
+**Build Status:** SUCCEEDED
+**Files Modified:**
+- Frame/Playback/AudioWaveformGenerator.swift (NEW)
+- Frame/Playback/PlaybackEngine.swift (+waveform integration)
+- Frame/Views/Editor/TimelineView.swift (+AudioWaveformView)
+- Frame.xcodeproj/project.pbxproj (+added file reference)
+

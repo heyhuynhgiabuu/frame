@@ -1,0 +1,83 @@
+{
+  "beadId": "bd-1c0",
+  "prdName": "audio-waveform-visualization",
+  "tasks": [
+    {
+      "id": "backend-1",
+      "title": "Create AudioWaveformGenerator",
+      "category": "backend",
+      "description": "Create AudioWaveformGenerator.swift to extract audio samples from video files using AVAssetReader and generate waveform data.",
+      "steps": [
+        "Unit test: Extract audio from sample video, verify sample count",
+        "Verify samples are normalized to 0.0-1.0 range",
+        "Verify generation completes in <2 seconds for 1-min video"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": [],
+        "parallel": true,
+        "conflicts_with": [],
+        "files": ["Frame/Playback/AudioWaveformGenerator.swift"]
+      }
+    },
+    {
+      "id": "integration-1",
+      "title": "Add waveform data to PlaybackEngine",
+      "category": "integration",
+      "description": "Update PlaybackEngine to trigger waveform generation when video loads and store the waveform data.",
+      "steps": [
+        "Load video with audio, verify waveform data available in PlaybackEngine",
+        "Load video without audio, verify nil waveform data",
+        "Verify data cleared when video closed"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": ["Create AudioWaveformGenerator"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Playback/PlaybackEngine.swift"]
+      }
+    },
+    {
+      "id": "ui-1",
+      "title": "Create waveform view in TimelineView",
+      "category": "ui",
+      "description": "Add Swift Charts waveform visualization to TimelineView, showing orange/blue gradient bars for audio amplitude.",
+      "steps": [
+        "Build app, load video with audio",
+        "Verify orange/blue waveform visible in timeline",
+        "Scrub timeline, verify smooth updates",
+        "Mute audio, verify waveform at 50% opacity"
+      ],
+      "passes": true,
+      "metadata": {
+        "depends_on": ["Add waveform data to PlaybackEngine"],
+        "parallel": false,
+        "conflicts_with": [],
+        "files": ["Frame/Views/Editor/TimelineView.swift"]
+      }
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Timeline View: Frame/Views/Editor/TimelineView.swift",
+      "Playback Engine: Frame/Playback/PlaybackEngine.swift",
+      "Audio Handling: AVPlayer for playback, no extraction yet",
+      "Swift Charts: Available on macOS 13.0+"
+    ],
+    "keyFiles": ["Frame/Views/Editor/TimelineView.swift", "Frame/Playback/PlaybackEngine.swift"],
+    "nonGoals": [
+      "Multi-track audio (system + mic separately)",
+      "Audio editing (cut, trim, fade)",
+      "Real-time waveform generation during recording",
+      "Spectrogram or frequency visualization"
+    ]
+  },
+  "beadMetadata": {
+    "depends_on": ["bd-13v"],
+    "parallel": true,
+    "conflicts_with": [],
+    "blocks": [],
+    "estimated_hours": 3
+  }
+}
