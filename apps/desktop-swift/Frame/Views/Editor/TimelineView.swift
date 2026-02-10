@@ -277,6 +277,14 @@ struct TimelineView: View {
                     )
                 }
 
+                // Zoom blocks
+                ZoomBlocksView(
+                    zoomSegments: effects.zoomSegments,
+                    duration: duration,
+                    width: width,
+                    height: height
+                )
+
                 // Progress fill
                 RoundedRectangle(cornerRadius: 4)
                     .fill(.blue.opacity(0.15))
@@ -452,6 +460,56 @@ private struct AudioWaveformView: View {
             startPoint: .bottom,
             endPoint: .top
         )
+    }
+}
+
+// MARK: - Zoom Blocks View
+
+private struct ZoomBlocksView: View {
+    let zoomSegments: [ZoomSegment]
+    let duration: TimeInterval
+    let width: CGFloat
+    let height: CGFloat
+    
+    var body: some View {
+        ZStack(alignment: .leading) {
+            ForEach(zoomSegments) { segment in
+                ZoomBlock(
+                    segment: segment,
+                    duration: duration,
+                    totalWidth: width,
+                    height: height
+                )
+            }
+        }
+        .frame(width: width, height: height)
+    }
+}
+
+private struct ZoomBlock: View {
+    let segment: ZoomSegment
+    let duration: TimeInterval
+    let totalWidth: CGFloat
+    let height: CGFloat
+    
+    private var xPosition: CGFloat {
+        guard duration > 0 else { return 0 }
+        return (segment.startTime / duration) * totalWidth
+    }
+    
+    private var blockWidth: CGFloat {
+        guard duration > 0 else { return 0 }
+        let width = (segment.duration / duration) * totalWidth
+        // Minimum width for visibility
+        return max(width, 4)
+    }
+    
+    var body: some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(Color(red: 0.659, green: 0.333, blue: 0.969)) // #A855F7 purple
+            .frame(width: blockWidth, height: height * 0.6)
+            .offset(x: xPosition, y: height * 0.2)
+            .opacity(segment.isEnabled ? 1.0 : 0.4)
     }
 }
 
